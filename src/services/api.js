@@ -23,7 +23,46 @@ const memoryCache = new Map();
 const sessionInvestigationCache = {
   scoreStats: { correct: 0, total: 0, streak: 0 },
   suspectStatuses: {},
+  memoryPalace: {
+    solvedIds: [],
+    pinnedIds: [],
+  },
 };
+
+/**
+ * Returns the active session's Memory Palace state (solved and pinned episode IDs).
+ */
+export function getMemoryPalaceState() {
+  return sessionInvestigationCache.memoryPalace;
+}
+
+/**
+ * Toggles an episode ID as solved/watched in Patrick Jane's Memory Palace session cache.
+ */
+export function toggleMemoryPalaceSolved(episodeId) {
+  const numId = Number(episodeId);
+  const current = sessionInvestigationCache.memoryPalace.solvedIds;
+  const exists = current.includes(numId);
+  sessionInvestigationCache.memoryPalace = {
+    ...sessionInvestigationCache.memoryPalace,
+    solvedIds: exists ? current.filter((id) => id !== numId) : [...current, numId],
+  };
+  return sessionInvestigationCache.memoryPalace;
+}
+
+/**
+ * Toggles an episode ID as pinned/bookmarked in Patrick Jane's Memory Palace session cache.
+ */
+export function toggleMemoryPalacePinned(episodeId) {
+  const numId = Number(episodeId);
+  const current = sessionInvestigationCache.memoryPalace.pinnedIds;
+  const exists = current.includes(numId);
+  sessionInvestigationCache.memoryPalace = {
+    ...sessionInvestigationCache.memoryPalace,
+    pinnedIds: exists ? current.filter((id) => id !== numId) : [...current, numId],
+  };
+  return sessionInvestigationCache.memoryPalace;
+}
 
 /**
  * Reads or updates the in-memory cached Observation Test score & streak for the active session.

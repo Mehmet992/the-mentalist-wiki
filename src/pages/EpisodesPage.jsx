@@ -1,11 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dices, Film, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
+import {
+  Bookmark,
+  Brain,
+  CheckCircle2,
+  Dices,
+  Film,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+} from 'lucide-react';
 import {
   analyzeEpisodeMilestone,
   fetchShowEpisodes,
   getEpisodeColorMotif,
+  getMemoryPalaceState,
   searchAndRankEpisodes,
+  toggleMemoryPalacePinned,
+  toggleMemoryPalaceSolved,
 } from '../services/api';
 import LoadingState from '../components/common/LoadingState';
 import ApiErrorState from '../components/common/ApiErrorState';
@@ -16,14 +28,18 @@ const ITEMS_PER_PAGE = 12;
 
 /**
  * Episodes Listing Page (/episodes) displaying all 151 episodes of The Mentalist
- * fetched from the TVmaze API with relevance-ranked text search, labeled filter inputs
- * (UI/UX Slides 6 & 37), a 1-click Random Case File launcher, and pagination.
+ * with Patrick Jane's Memory Palace (Solved Case Progress Bar & Pinned Case Bookmarks),
+ * relevance-ranked text search, labeled filter inputs, and a 1-click Random Case launcher.
  */
 export default function EpisodesPage() {
   const navigate = useNavigate();
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Memory Palace state (Solved cases & Pinned bookmarks)
+  const [memoryPalace, setMemoryPalace] = useState(() => getMemoryPalaceState());
+  const [palaceFilter, setPalaceFilter] = useState('ALL'); // 'ALL', 'PINNED', 'SOLVED', 'UNSOLVED'
 
   const [searchQuery, setSearchQuery] = useState('');
   const [seasonFilter, setSeasonFilter] = useState('ALL');
@@ -33,7 +49,7 @@ export default function EpisodesPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   /**
-   * Retrieves all 151 episodes from the public TVmaze API endpoint.
+   * Retrieves all 151 episodes.
    */
   const loadEpisodes = useCallback(async () => {
     setLoading(true);
@@ -54,7 +70,23 @@ export default function EpisodesPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, seasonFilter, actFilter, motifFilter, sortBy]);
+  }, [searchQuery, seasonFilter, actFilter, motifFilter, sortBy, palaceFilter]);
+
+  /**
+   * Toggles an episode's solved status inside Patrick Jane's Memory Palace.
+   */
+  const handleToggleSolved = (episodeId) => {
+    const updated = toggleMemoryPalaceSolved(episodeId);
+    setMemoryPalace({ ...updated });
+  };
+
+  /**
+   * Toggles an episode's pinned bookmark inside Patrick Jane's Memory Palace.
+   */
+  const handleTogglePinned = (episodeId) => {
+    const updated = toggleMemoryPalacePinned(episodeId);
+    setMemoryPalace({ ...updated });
+  };
 
   /**
    * Resets all search and filter controls back to their default state.
@@ -64,12 +96,13 @@ export default function EpisodesPage() {
     setSeasonFilter('ALL');
     setActFilter('ALL');
     setMotifFilter('ALL');
+    setPalaceFilter('ALL');
     setSortBy('CHRONOLOGICAL');
     setCurrentPage(1);
   };
 
   /**
-   * Picks a random episode out of the 151 API records and opens its full Case File.
+   * Picks a random episode out of the 151 records and opens its full Case File.
    */
   const handleOpenRandomCase = () => {
     if (episodes.length === 0) return;
@@ -82,6 +115,12 @@ export default function EpisodesPage() {
     const basePool = episodes.filter((ep) => {
       const analysis = analyzeEpisodeMilestone(ep);
       const colorMotif = getEpisodeColorMotif(ep);
+      const isPinned = memoryPalace.pinnedIds.includes(ep.id);
+      const isSolved = memoryPalace.solvedIds.includes(ep.id);
+
+      if (palaceFilter === 'PINNED' && !isPinned) return false;
+      if (palaceFilter === 'SOLVED' && !isSolved) return false;
+      if (palaceFilter === 'UNSOLVED' && isSolved) return false;
 
       if (seasonFilter !== 'ALL' && ep.season !== Number(seasonFilter)) {
         return false;
@@ -101,7 +140,6 @@ export default function EpisodesPage() {
       return true;
     });
 
-    // When a search query is entered, rank by relevance so exact title matches (e.g. "Red John" S06E08) appear first
     if (searchQuery.trim()) {
       return searchAndRankEpisodes(basePool, searchQuery);
     }
@@ -115,7 +153,16 @@ export default function EpisodesPage() {
       return [...basePool].reverse();
     }
     return basePool;
-  }, [episodes, seasonFilter, actFilter, motifFilter, searchQuery, sortBy]);
+  }, [
+    episodes,
+    seasonFilter,
+    actFilter,
+    motifFilter,
+    searchQuery,
+    sortBy,
+    palaceFilter,
+    memoryPalace,
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredEpisodes.length / ITEMS_PER_PAGE));
   const paginatedEpisodes = useMemo(() => {
@@ -127,7 +174,7 @@ export default function EpisodesPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <LoadingState
-          message="Fetching all 151 episode case files from TVmaze API..."
+          message="Loading all 151 episode case files..."
           endpointHint="api.tvmaze.com/shows/116/episodes"
         />
       </div>
@@ -142,25 +189,30 @@ export default function EpisodesPage() {
     );
   }
 
+  const solvedCount = memoryPalace.solvedIds.length;
+  const pinnedCount = memoryPalace.pinnedIds.length;
+  const progressPct =
+    episodes.length > 0 ? Math.round((solvedCount / episodes.length) * 100) : 0;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Page Header */}
+      {/* Page Header & Patrick Jane's Memory Palace Tracker */}
       <div className="glass-panel rounded-3xl p-6 sm:p-8 mb-8 text-left">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-400 text-xs font-semibold uppercase mb-2">
               <Film className="h-3.5 w-3.5" />
-              <span>CBI &amp; FBI Case Directory • {episodes.length} API Records</span>
+              <span>CBI &amp; FBI Case Directory • {episodes.length} Episodes</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-[#f5f5f5] font-serif-title">
               Episode Case Files
             </h1>
             <p className="text-base text-zinc-300 mt-1 max-w-[65ch]">
-              Search and filter across all 151 episodes by keyword, season, narrative Act, or launch a random case dossier.
+              Browse, search, and pin your favorite investigations into Patrick Jane&apos;s Memory
+              Palace or track which cases you have solved.
             </p>
           </div>
 
-          {/* Aligned Header Action Buttons: Random Case File + Reset Filters */}
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-center shrink-0">
             <button
               type="button"
@@ -182,9 +234,69 @@ export default function EpisodesPage() {
           </div>
         </div>
 
-        {/* Reactive Search & Filter Controls with Visible Sticking Labels (UI/UX Slide 6 & 37) */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
-          {/* Text Search Input */}
+        {/* Patrick Jane's Memory Palace Bar (Embedded directly inside Episodes Page!) */}
+        <div className="mt-5 rounded-2xl bg-[#0d0d13]/95 border border-white/10 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-red-300 uppercase">
+                <Brain className="h-4 w-4 text-red-400" />
+                <span>Patrick Jane&apos;s Memory Palace — Investigation Progress</span>
+              </span>
+              <span className="font-mono-code text-zinc-300">
+                <strong className="text-emerald-400">{solvedCount}</strong> / {episodes.length}{' '}
+                Cases Solved ({progressPct}%)
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden border border-white/5">
+              <div
+                style={{ width: `${Math.max(2, progressPct)}%` }}
+                className="h-full bg-gradient-to-r from-red-600 via-amber-500 to-emerald-400 transition-all duration-500"
+              />
+            </div>
+          </div>
+
+          {/* Memory Palace Quick Filter Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setPalaceFilter('ALL')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                palaceFilter === 'ALL'
+                  ? 'bg-red-600 text-white border-red-400'
+                  : 'bg-zinc-900 text-zinc-300 border-white/10 hover:text-white'
+              }`}
+            >
+              All Cases ({episodes.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPalaceFilter('PINNED')}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                palaceFilter === 'PINNED'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-400'
+                  : 'bg-zinc-900 text-zinc-300 border-white/10 hover:text-amber-300'
+              }`}
+            >
+              <Bookmark className="h-3.5 w-3.5" />
+              <span>Pinned ({pinnedCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPalaceFilter('SOLVED')}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                palaceFilter === 'SOLVED'
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400'
+                  : 'bg-zinc-900 text-zinc-300 border-white/10 hover:text-emerald-300'
+              }`}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>Solved ({solvedCount})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Reactive Search & Filter Controls with Visible Sticking Labels */}
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
           <div className="sm:col-span-2 lg:col-span-4">
             <label
               htmlFor="episodes-search-input"
@@ -205,7 +317,6 @@ export default function EpisodesPage() {
             </div>
           </div>
 
-          {/* Season Filter */}
           <div className="lg:col-span-2">
             <label
               htmlFor="episodes-season-select"
@@ -228,7 +339,6 @@ export default function EpisodesPage() {
             </select>
           </div>
 
-          {/* Story Act Filter */}
           <div className="lg:col-span-2">
             <label
               htmlFor="episodes-act-select"
@@ -248,7 +358,6 @@ export default function EpisodesPage() {
             </select>
           </div>
 
-          {/* Color Motif / Red John Case Filter */}
           <div className="lg:col-span-2">
             <label
               htmlFor="episodes-motif-select"
@@ -269,7 +378,6 @@ export default function EpisodesPage() {
             </select>
           </div>
 
-          {/* Sort Order */}
           <div className="lg:col-span-2">
             <label
               htmlFor="episodes-sort-select"
@@ -297,7 +405,6 @@ export default function EpisodesPage() {
             <span>
               Matching Cases: <strong className="text-white">{filteredEpisodes.length}</strong> /{' '}
               {episodes.length}
-              {searchQuery.trim() ? ' (Sorted by search relevance)' : ''}
             </span>
           </span>
           <span>
@@ -313,7 +420,7 @@ export default function EpisodesPage() {
             No episodes match your current filter criteria
           </h2>
           <p className="text-base text-zinc-400 mb-4">
-            Try clearing your search keyword or switching the Season / Act filter.
+            Try clearing your search keyword or switching the Memory Palace / Season filter.
           </p>
           <button
             type="button"
@@ -327,7 +434,14 @@ export default function EpisodesPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedEpisodes.map((episode) => (
-              <EpisodeCard key={episode.id} episode={episode} />
+              <EpisodeCard
+                key={episode.id}
+                episode={episode}
+                isSolved={memoryPalace.solvedIds.includes(episode.id)}
+                isPinned={memoryPalace.pinnedIds.includes(episode.id)}
+                onToggleSolved={handleToggleSolved}
+                onTogglePinned={handleTogglePinned}
+              />
             ))}
           </div>
 

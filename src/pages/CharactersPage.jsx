@@ -8,6 +8,7 @@ import {
 import LoadingState from '../components/common/LoadingState';
 import ApiErrorState from '../components/common/ApiErrorState';
 import CharacterCard from '../components/cards/CharacterCard';
+import AgentBadgeGenerator from '../components/cards/AgentBadgeGenerator';
 import Pagination from '../components/common/Pagination';
 
 const ITEMS_PER_PAGE = 9;
@@ -160,7 +161,7 @@ export default function CharactersPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-900/40 border border-red-500/40 text-red-300 text-xs font-mono-code uppercase mb-2">
               <Users className="h-3.5 w-3.5" />
-              <span>Dual-Identity Directory • {combinedDirectory.length} API Profiles</span>
+              <span>Cast &amp; Character Directory • {combinedDirectory.length} Profiles</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-serif-title">
               Actors &amp; Series Characters
@@ -245,6 +246,9 @@ export default function CharactersPage() {
           </div>
         </div>
       </div>
+
+      {/* Interactive CBI / FBI Agent ID Badge Generator Studio */}
+      <AgentBadgeGenerator castList={mainCast} />
 
       {/* Cast Cards Grid */}
       {paginatedCast.length === 0 ? (

@@ -193,10 +193,10 @@ export default function CharacterDetailPage() {
                   </div>
                 </div>
 
-                {/* Progressive Disclosure Character Biography (16px base body text, 1.5 line-height, 65ch measure) */}
+                {/* Progressive Disclosure Character Biography */}
                 <div className="rounded-2xl bg-[#101017] border border-white/10 p-5 space-y-3">
                   <h2 className="text-sm font-semibold uppercase tracking-wider text-red-400">
-                    Character Story Summary (Live Wiki API)
+                    Character Biography
                   </h2>
                   <p
                     className={`text-base text-zinc-200 leading-[1.5] max-w-[65ch] whitespace-pre-line ${
@@ -300,10 +300,10 @@ export default function CharacterDetailPage() {
               </div>
             </div>
 
-            {/* Progressive Disclosure Real Actor Biography (16px base body text, 1.5 line-height, 65ch measure) */}
+            {/* Progressive Disclosure Real Actor Biography */}
             <div className="rounded-2xl bg-[#101017] border border-white/10 p-5 space-y-3">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-red-400">
-                Real Actor Career Bio (Wikipedia REST API)
+                Actor Career Biography
               </h3>
               <p
                 className={`text-base text-zinc-200 leading-[1.5] max-w-[65ch] whitespace-pre-line ${

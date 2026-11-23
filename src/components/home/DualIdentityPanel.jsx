@@ -81,11 +81,11 @@ export default function DualIdentityPanel({
   const characterBioText =
     fandomCharacter?.overview ||
     characterWiki?.extract ||
-    `Live character record retrieved from TVmaze API (Character ID #${character.id}).`;
+    `${character.name} is a key character in The Mentalist.`;
 
   const actorBioText =
     actorWiki?.extract ||
-    `Live actor record retrieved from TVmaze API (Person ID #${person.id}).`;
+    `${person.name} stars as ${character.name} in The Mentalist.`;
 
   return (
     <div
@@ -97,18 +97,12 @@ export default function DualIdentityPanel({
         <div className="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-white/10">
           <div className="flex items-center gap-2.5">
             <span className="px-2.5 py-1 rounded-md bg-red-600/20 border border-red-500/40 text-red-300 text-xs font-semibold uppercase">
-              Active Deck Spotlight
+              Character &amp; Actor Spotlight
             </span>
-            {expandBios && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium">
-                <PauseCircle className="h-3.5 w-3.5" />
-                <span>Card Timer Paused While Reading</span>
-              </span>
-            )}
             {loading && (
               <span className="inline-flex items-center gap-1.5 text-xs text-zinc-300">
                 <Loader2 className="h-3.5 w-3.5 text-red-500 animate-spin" />
-                <span>Syncing API...</span>
+                <span>Loading biography...</span>
               </span>
             )}
           </div>
@@ -247,9 +241,7 @@ export default function DualIdentityPanel({
               : 'bg-zinc-900 hover:bg-zinc-800 border-white/10 text-zinc-200'
           }`}
         >
-          <span>
-            {expandBios ? 'Collapse Bio & Resume Deck Timer' : 'Read More Bio Text (Pauses Deck)'}
-          </span>
+          <span>{expandBios ? 'Show Less' : 'Read Full Biography'}</span>
           {expandBios ? (
             <ChevronUp className="h-3.5 w-3.5 text-red-400" />
           ) : (

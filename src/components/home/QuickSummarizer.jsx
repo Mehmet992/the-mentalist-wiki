@@ -132,7 +132,7 @@ export default function QuickSummarizer({ seasons = [], episodes = [] }) {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/15 border border-red-500/30 text-red-400 text-xs font-mono-code uppercase mb-2">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Interactive API Inspector</span>
+            <span>Episode &amp; Season Explorer</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-white font-serif-title">
             Quick Case &amp; Season Summarizer
@@ -310,7 +310,7 @@ export default function QuickSummarizer({ seasons = [], episodes = [] }) {
                   <div className="flex items-center justify-between text-xs font-mono-code text-red-400 uppercase mb-1.5">
                     <span className="flex items-center gap-1.5">
                       <Clapperboard className="h-3.5 w-3.5" />
-                      <span>Extended Wiki Story Recap</span>
+                      <span>Full Episode Story</span>
                     </span>
                     {episodeWikiRecap.infobox?.Writer && (
                       <span className="text-zinc-400">

@@ -152,7 +152,7 @@ export default function SeasonsPage() {
       <div className="glass-panel rounded-3xl p-6 sm:p-8 mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-400 text-xs font-mono-code uppercase mb-2">
           <Layers className="h-3.5 w-3.5" />
-          <span>7 Seasons, Rating Analytics &amp; Official Artwork • Live API</span>
+          <span>7 Seasons, Rating Trends &amp; Official Artwork</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-serif-title">
           Seasons, Rating Trends &amp; Artwork Archive
@@ -362,7 +362,7 @@ export default function SeasonsPage() {
             <div>
               <span className="text-xs font-mono-code uppercase text-red-400 flex items-center gap-1.5">
                 <ImageIcon className="h-3.5 w-3.5" />
-                <span>Fetched from api.tvmaze.com/shows/116/images</span>
+                <span>Promotional Posters &amp; Banners</span>
               </span>
               <h2 className="text-2xl font-bold text-white font-serif-title mt-1">
                 Official Posters &amp; Artwork Gallery (Showing {visibleImages.length} of{' '}
@@ -475,7 +475,7 @@ export default function SeasonsPage() {
           <div>
             <span className="text-xs font-mono-code uppercase text-red-400 flex items-center gap-1.5">
               <Clapperboard className="h-3.5 w-3.5" />
-              <span>Fetched from api.tvmaze.com/shows/116/crew</span>
+              <span>Behind the Scenes</span>
             </span>
             <h2 className="text-2xl font-bold text-white font-serif-title mt-1">
               Series Creators &amp; Production Crew (Showing {visibleCrew.length} of{' '}

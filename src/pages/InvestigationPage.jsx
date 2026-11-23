@@ -277,15 +277,14 @@ export default function InvestigationPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-400 text-xs font-mono-code uppercase mb-2">
               <ShieldAlert className="h-3.5 w-3.5" />
-              <span>Interactive Investigation Lab • 100% API-Driven</span>
+              <span>CBI Special Investigation Room</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-serif-title">
               Red John Suspect Board &amp; Observation Test
             </h1>
             <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-prose">
-              Investigate Patrick Jane&apos;s final 7 Red John suspects fetched live from The
-              Mentalist Fandom &amp; TVmaze APIs, or test your mentalist observation skills with
-              live API-generated case challenges.
+              Investigate Patrick Jane&apos;s final 7 Red John suspects or test your mentalist
+              observation skills with interactive case deduction challenges.
             </p>
           </div>
 
@@ -557,7 +556,7 @@ export default function InvestigationPage() {
               </div>
               <div>
                 <span className="text-[11px] font-mono-code uppercase text-red-400">
-                  Live API-Generated Deduction Challenge
+                  Interactive Case Deduction Challenge
                 </span>
                 <h2 className="text-lg font-bold text-white font-serif-title">
                   Patrick Jane Observation Scoreboard
@@ -603,7 +602,7 @@ export default function InvestigationPage() {
                 <span>{currentQuestion.typeLabel}</span>
               </span>
               <span className="text-xs font-mono-code text-zinc-400">
-                Generated dynamically from api.tvmaze.com/shows/116
+                Mentalist Observation Round
               </span>
             </div>
 
@@ -628,7 +627,7 @@ export default function InvestigationPage() {
                 }
               >
                 <span className="text-[11px] font-mono-code uppercase text-red-400 block">
-                  Evidence Clue from API Payload:
+                  Case Evidence Clue:
                 </span>
                 <p className="text-sm sm:text-base text-zinc-200 leading-relaxed">
                   &ldquo;{currentQuestion.clueText}&rdquo;

@@ -24,6 +24,7 @@ import ApiErrorState from '../components/common/ApiErrorState';
 import StackedCardDeck from '../components/home/StackedCardDeck';
 import DualIdentityPanel from '../components/home/DualIdentityPanel';
 import QuickSummarizer from '../components/home/QuickSummarizer';
+import MentalistMemesSection from '../components/home/MentalistMemesSection';
 import CharacterCard from '../components/cards/CharacterCard';
 
 /**
@@ -117,7 +118,7 @@ export default function HomePage() {
             <div className="flex flex-wrap items-center gap-2 mb-2.5">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-[11px] font-mono-code text-red-400 font-semibold">
                 <ShieldAlert className="h-3.5 w-3.5" />
-                <span>SHOW ID #{showData.id}</span>
+                <span>CBI &amp; FBI CASE ARCHIVE</span>
               </span>
 
               {showData.genres?.map((genre) => (
@@ -293,12 +294,15 @@ export default function HomePage() {
       {/* Interactive Episode & Season Live Summarizer Section */}
       <QuickSummarizer seasons={seasonsList} episodes={episodesList} />
 
+      {/* Viral Fan Memes & Cult Moments on Social Media Section */}
+      <MentalistMemesSection castList={castList} episodesList={episodesList} />
+
       {/* Main Cast Dual-Identity Overview Grid on Home Page */}
       <section className="mt-14">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
           <div>
             <span className="text-xs font-mono-code uppercase text-red-400">
-              Live API Cast Roster
+              Main Series Cast
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-white font-serif-title mt-0.5">
               Starring Actors &amp; Series Characters

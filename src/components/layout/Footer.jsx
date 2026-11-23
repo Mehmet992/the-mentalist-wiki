@@ -36,8 +36,8 @@ export default function Footer() {
             </div>
             <p className="text-sm text-zinc-400 leading-[1.5] max-w-[65ch]">
               An interactive series encyclopedia and CBI / FBI case archive dedicated to The
-              Mentalist (2008–2015). All episodes, seasons, actor biographies, and character
-              dossiers are retrieved live from public APIs.
+              Mentalist (2008–2015). Explore all 151 episode case files, 7 seasons, cast
+              biographies, and character dossiers.
             </p>
           </div>
 
@@ -75,43 +75,43 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 3: Live Public API Endpoints */}
+          {/* Column 3: Reference Sources */}
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-red-400 mb-3 flex items-center gap-1.5">
               <Database className="h-3.5 w-3.5" />
-              <span>Live Public API Endpoints</span>
+              <span>Archive Reference Sources</span>
             </h2>
             <ul className="space-y-2 text-sm text-zinc-400">
               <li>
                 <a
-                  href="https://api.tvmaze.com/shows/116"
+                  href="https://www.tvmaze.com/shows/116/the-mentalist"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-red-300 hover:text-red-200 underline-offset-4 hover:underline"
                 >
-                  <span>api.tvmaze.com/shows/116</span>
+                  <span>TVmaze — The Mentalist Guide</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </li>
               <li>
                 <a
-                  href="https://thementalist.fandom.com/api.php"
+                  href="https://thementalist.fandom.com/wiki/The_Mentalist_Wiki"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-red-300 hover:text-red-200 underline-offset-4 hover:underline"
                 >
-                  <span>thementalist.fandom.com/api.php</span>
+                  <span>The Mentalist Fandom Encyclopedia</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </li>
               <li>
                 <a
-                  href="https://en.wikipedia.org/api/rest_v1/page/summary/The_Mentalist"
+                  href="https://en.wikipedia.org/wiki/The_Mentalist"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-red-300 hover:text-red-200 underline-offset-4 hover:underline"
                 >
-                  <span>en.wikipedia.org/api/rest_v1</span>
+                  <span>Wikipedia — The Mentalist</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </li>
@@ -121,7 +121,7 @@ export default function Footer() {
 
         <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-400 gap-2">
           <span>The Mentalist Case Archives &amp; Series Encyclopedia</span>
-          <span>Live Data Powered by TVmaze, Fandom MediaWiki &amp; Wikipedia REST APIs</span>
+          <span>California Bureau of Investigation (CBI) &amp; FBI Special Dossier</span>
         </div>
       </div>
     </footer>

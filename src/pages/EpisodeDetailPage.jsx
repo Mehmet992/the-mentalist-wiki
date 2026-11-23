@@ -3,7 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
+  Bookmark,
   Calendar,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Clapperboard,
@@ -19,7 +21,10 @@ import {
   fetchEpisodeDetails,
   fetchFandomWikiArticle,
   fetchShowEpisodes,
+  getMemoryPalaceState,
   recordRecentVisit,
+  toggleMemoryPalacePinned,
+  toggleMemoryPalaceSolved,
 } from '../services/api';
 import LoadingState from '../components/common/LoadingState';
 import ApiErrorState from '../components/common/ApiErrorState';
@@ -39,6 +44,7 @@ export default function EpisodeDetailPage() {
   const [wikiArticle, setWikiArticle] = useState(null);
   const [expandFullRecap, setExpandFullRecap] = useState(false);
   const [showAllGuestCast, setShowAllGuestCast] = useState(false);
+  const [memoryPalace, setMemoryPalace] = useState(() => getMemoryPalaceState());
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -213,11 +219,11 @@ export default function EpisodeDetailPage() {
               </div>
             </div>
 
-            {/* Episode Directors & Writers from API */}
+            {/* Episode Directors & Writers */}
             <div className="rounded-2xl bg-black/70 border border-white/10 p-4 space-y-2">
               <div className="flex items-center gap-2 text-xs font-mono-code uppercase text-red-400 font-semibold">
                 <Clapperboard className="h-4 w-4" />
-                <span>Episode Crew (API)</span>
+                <span>Directors &amp; Writers</span>
               </div>
 
               {guestCrew.length > 0 ? (
@@ -279,26 +285,67 @@ export default function EpisodeDetailPage() {
               <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-serif-title">
                 {episode.name}
               </h1>
+
+              {/* Memory Palace Actions on Episode Detail Page */}
+              <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setMemoryPalace({ ...toggleMemoryPalacePinned(episode.id) })}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    memoryPalace.pinnedIds.includes(episode.id)
+                      ? 'bg-amber-500/20 border-amber-400 text-amber-300'
+                      : 'bg-zinc-900 hover:bg-zinc-800 border-white/10 text-zinc-200'
+                  }`}
+                >
+                  <Bookmark
+                    className={`h-3.5 w-3.5 ${
+                      memoryPalace.pinnedIds.includes(episode.id) ? 'fill-amber-300' : ''
+                    }`}
+                  />
+                  <span>
+                    {memoryPalace.pinnedIds.includes(episode.id)
+                      ? 'Pinned in Memory Palace'
+                      : 'Pin to Memory Palace'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMemoryPalace({ ...toggleMemoryPalaceSolved(episode.id) })}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    memoryPalace.solvedIds.includes(episode.id)
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
+                      : 'bg-zinc-900 hover:bg-zinc-800 border-white/10 text-zinc-200'
+                  }`}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>
+                    {memoryPalace.solvedIds.includes(episode.id)
+                      ? 'Case Marked Solved'
+                      : 'Mark Case Solved'}
+                  </span>
+                </button>
+              </div>
             </div>
 
-            {/* Official TVmaze Case Summary */}
+            {/* Official Case Summary */}
             <div className="rounded-2xl bg-black/70 border border-white/10 p-5">
               <div className="flex items-center gap-2 text-xs font-mono-code uppercase text-red-400 font-semibold mb-2">
                 <FileText className="h-4 w-4" />
-                <span>Case Briefing (TVmaze API)</span>
+                <span>Case Synopsis</span>
               </div>
               <p className="text-sm sm:text-base text-zinc-100 leading-relaxed max-w-prose">
                 {analysis.cleanSummary || 'No official summary available.'}
               </p>
             </div>
 
-            {/* Progressive Disclosure: Extended Story Recap from Fandom MediaWiki API */}
+            {/* Progressive Disclosure: Extended Story Recap */}
             {wikiArticle && (wikiArticle.recap || wikiArticle.overview) && (
               <div className="rounded-2xl bg-black/70 border border-white/10 p-5 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs font-mono-code uppercase text-red-400 font-semibold">
                     <ShieldAlert className="h-4 w-4" />
-                    <span>Extended Story Recap (Fandom Wiki API)</span>
+                    <span>Full Episode Story</span>
                   </div>
                   {wikiArticle.wikiUrl && (
                     <a

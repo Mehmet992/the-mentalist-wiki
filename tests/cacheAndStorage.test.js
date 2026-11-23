@@ -3,14 +3,18 @@ import assert from 'node:assert/strict';
 import {
   clearApiCache,
   getCachedQuizScore,
+  getMemoryPalaceState,
   getRecentVisits,
   recordRecentVisit,
   setCachedQuizScore,
+  toggleMemoryPalacePinned,
+  toggleMemoryPalaceSolved,
 } from '../src/services/api.js';
 
 /**
  * Unit test suite verifying in-memory session caching for the Observation Test score/streak,
- * localStorage persistence for Recognition Over Recall, and API cache clearing utilities.
+ * Patrick Jane's Memory Palace (solved & pinned cases), localStorage persistence for
+ * Recognition Over Recall, and API cache clearing utilities.
  */
 test('getCachedQuizScore and setCachedQuizScore store quiz streak in memory cache instead of localStorage', () => {
   const initial = getCachedQuizScore();
@@ -18,6 +22,21 @@ test('getCachedQuizScore and setCachedQuizScore store quiz streak in memory cach
 
   setCachedQuizScore({ correct: 3, total: 4, streak: 2 });
   assert.deepEqual(getCachedQuizScore(), { correct: 3, total: 4, streak: 2 });
+});
+
+test('toggleMemoryPalaceSolved and toggleMemoryPalacePinned update session Memory Palace state', () => {
+  assert.deepEqual(getMemoryPalaceState(), { solvedIds: [], pinnedIds: [] });
+
+  toggleMemoryPalaceSolved(8878);
+  toggleMemoryPalacePinned(9012);
+  assert.deepEqual(getMemoryPalaceState(), {
+    solvedIds: [8878],
+    pinnedIds: [9012],
+  });
+
+  // Toggling again removes them cleanly
+  toggleMemoryPalaceSolved(8878);
+  assert.deepEqual(getMemoryPalaceState().solvedIds, []);
 });
 test('recordRecentVisit and getRecentVisits persist and deduplicate recent dossiers', () => {
   // Provide a minimal in-memory localStorage mock for Node environment

@@ -119,11 +119,6 @@ export default function StackedCardDeck({
           <span>
             CARD <strong className="text-red-400">{activeIndex + 1}</strong> / {totalCards}
           </span>
-          {(isManuallyPaused || isBioExpanded) && (
-            <span className="text-[10px] text-amber-400 font-semibold uppercase ml-1">
-              • {isBioExpanded ? 'Reading Bio' : 'Paused'}
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-1.5">

@@ -30,7 +30,7 @@ export default function Pagination({
     <div className="mt-10 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div className="text-xs font-mono-code text-zinc-400">
         Showing <span className="text-red-400 font-semibold">{visibleCount}</span> of{' '}
-        <span className="text-white font-semibold">{totalItems}</span> API records (Page{' '}
+        <span className="text-white font-semibold">{totalItems}</span> results (Page{' '}
         <span className="text-white font-semibold">{currentPage}</span> of {totalPages})
       </div>
 
