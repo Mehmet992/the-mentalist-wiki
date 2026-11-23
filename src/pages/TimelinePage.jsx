@@ -423,39 +423,56 @@ export default function TimelinePage() {
             </button>
           </div>
 
-          <div className="md:col-span-6 flex flex-wrap items-center justify-end gap-2">
-            <div className="relative flex-1 min-w-[160px]">
-              <Search className="h-3.5 w-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search timeline..."
-                className="w-full rounded-xl bg-black/80 border border-white/15 pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-red-500"
-              />
+          <div className="md:col-span-6 flex flex-wrap items-end justify-end gap-2.5">
+            <div className="flex-1 min-w-[170px] text-left">
+              <label
+                htmlFor="timeline-search-input"
+                className="block text-xs font-semibold text-zinc-300 mb-1"
+              >
+                Search Timeline Cases
+              </label>
+              <div className="relative">
+                <Search className="h-3.5 w-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  id="timeline-search-input"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="e.g. Red John, Pilot..."
+                  className="w-full h-9 rounded-xl bg-[#0d0d13] border border-white/15 pl-8 pr-3 text-xs text-[#f5f5f5] placeholder-zinc-500"
+                />
+              </div>
             </div>
 
-            <select
-              value={selectedSeason}
-              onChange={(e) => setSelectedSeason(e.target.value)}
-              aria-label="Filter timeline by season"
-              className="rounded-xl bg-black/80 border border-white/15 px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-red-500"
-            >
-              <option value="ALL">All Seasons</option>
-              {[1, 2, 3, 4, 5, 6, 7].map((s) => (
-                <option key={s} value={s}>
-                  Season {s}
-                </option>
-              ))}
-            </select>
+            <div className="text-left">
+              <label
+                htmlFor="timeline-season-select"
+                className="block text-xs font-semibold text-zinc-300 mb-1"
+              >
+                Season
+              </label>
+              <select
+                id="timeline-season-select"
+                value={selectedSeason}
+                onChange={(e) => setSelectedSeason(e.target.value)}
+                className="h-9 rounded-xl bg-[#0d0d13] border border-white/15 px-3 text-xs text-zinc-200"
+              >
+                <option value="ALL">All Seasons</option>
+                {[1, 2, 3, 4, 5, 6, 7].map((s) => (
+                  <option key={s} value={s}>
+                    Season {s}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <button
               type="button"
               onClick={() => setOnlyMilestones((prev) => !prev)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono-code border transition cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                 onlyMilestones
                   ? 'bg-red-600/20 border-red-500/50 text-red-300'
-                  : 'bg-zinc-900 border-white/10 text-zinc-400'
+                  : 'bg-zinc-900 border-white/10 text-zinc-300'
               }`}
             >
               <Filter className="h-3.5 w-3.5" />

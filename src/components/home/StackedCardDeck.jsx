@@ -3,19 +3,32 @@ import { Pause, Play, RotateCw, Sparkles, UserCheck } from 'lucide-react';
 
 /**
  * Renders a 3D Fanned Stacked Card Deck on the left side of the Home Page.
- * Applies Rule 6 (Depth & Ambient Spotlight) and Rule 7 (Micro-interaction progress bar
- * and smooth 3D cubic-bezier transitions as the top card cycles to the back).
+ * Separates manual Pause button state from hover state and biography-expansion state:
+ * - Clicking the Pause button keeps the timer paused even after the mouse leaves the deck,
+ *   until the user clicks Play again.
+ * - Expanding the biography on the right panel (isBioExpanded) also pauses the card rotation
+ *   automatically while the user reads.
  *
  * @param {Object} props
  * @param {Array} props.castList - Array of cast items from TVmaze (/shows/116/cast)
  * @param {number} props.activeIndex - Index of the currently active front card
  * @param {Function} props.onSelectIndex - Callback to update the active card index
+ * @param {boolean} [props.isBioExpanded] - True when the user has expanded the biography text
  */
-export default function StackedCardDeck({ castList = [], activeIndex = 0, onSelectIndex }) {
-  const [isPaused, setIsPaused] = useState(false);
+export default function StackedCardDeck({
+  castList = [],
+  activeIndex = 0,
+  onSelectIndex,
+  isBioExpanded = false,
+}) {
+  const [isManuallyPaused, setIsManuallyPaused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [showActorPhoto, setShowActorPhoto] = useState(false);
 
   const totalCards = castList.length;
+
+  // Timer pauses if: 1) User clicked Pause button, 2) User expanded the Bio, or 3) Mouse is hovering the deck
+  const isTimerPaused = isManuallyPaused || isBioExpanded || isHovered;
 
   /**
    * Advances the front card to the back of the stack and brings the next card to the top.
@@ -25,15 +38,15 @@ export default function StackedCardDeck({ castList = [], activeIndex = 0, onSele
     onSelectIndex((activeIndex + 1) % totalCards);
   };
 
-  // Automatic card rotation timer (every 4.8 seconds unless paused by user)
+  // Automatic card rotation timer (every 4.8 seconds unless paused)
   useEffect(() => {
-    if (isPaused || totalCards <= 1) return undefined;
+    if (isTimerPaused || totalCards <= 1) return undefined;
     const timer = setInterval(() => {
       onSelectIndex((prevIndex) => (prevIndex + 1) % totalCards);
     }, 4800);
 
     return () => clearInterval(timer);
-  }, [isPaused, totalCards, onSelectIndex]);
+  }, [isTimerPaused, totalCards, onSelectIndex]);
 
   if (totalCards === 0) return null;
 
@@ -93,8 +106,8 @@ export default function StackedCardDeck({ castList = [], activeIndex = 0, onSele
   return (
     <div
       className="relative flex flex-col items-center lg:items-start select-none"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Rule 6: Ambient Crimson Spotlight behind the 3D Card Stack */}
       <div className="pointer-events-none absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-red-600/20 blur-3xl" />
@@ -106,6 +119,11 @@ export default function StackedCardDeck({ castList = [], activeIndex = 0, onSele
           <span>
             CARD <strong className="text-red-400">{activeIndex + 1}</strong> / {totalCards}
           </span>
+          {(isManuallyPaused || isBioExpanded) && (
+            <span className="text-[10px] text-amber-400 font-semibold uppercase ml-1">
+              • {isBioExpanded ? 'Reading Bio' : 'Paused'}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -113,21 +131,36 @@ export default function StackedCardDeck({ castList = [], activeIndex = 0, onSele
             type="button"
             onClick={() => setShowActorPhoto((prev) => !prev)}
             title="Switch portrait between Character and Real Actor"
-            className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 hover:border-red-500/50 text-[11px] font-mono-code text-zinc-200 transition cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 hover:border-red-500/50 text-xs font-medium text-zinc-200 transition cursor-pointer"
           >
             {showActorPhoto ? 'View: Real Actor' : 'View: Character'}
           </button>
 
           <button
             type="button"
-            onClick={() => setIsPaused((prev) => !prev)}
-            title={isPaused ? 'Resume Auto-Cycle' : 'Pause Auto-Cycle'}
-            className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 hover:border-red-500/50 text-zinc-200 transition cursor-pointer"
+            onClick={() => setIsManuallyPaused((prev) => !prev)}
+            aria-label={isManuallyPaused ? 'Play Card Timer' : 'Pause Card Timer'}
+            title={
+              isManuallyPaused
+                ? 'Click to resume automatic card rotation'
+                : 'Click to pause automatic card rotation'
+            }
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+              isManuallyPaused
+                ? 'bg-red-600 text-white border-red-400 shadow-[0_0_12px_rgba(220,38,38,0.5)]'
+                : 'bg-zinc-900/90 hover:bg-zinc-800 border-white/10 hover:border-red-500/50 text-zinc-200'
+            }`}
           >
-            {isPaused ? (
-              <Play className="h-3.5 w-3.5 text-red-400" />
+            {isManuallyPaused ? (
+              <>
+                <Play className="h-3.5 w-3.5 fill-current" />
+                <span>Play</span>
+              </>
             ) : (
-              <Pause className="h-3.5 w-3.5 text-zinc-300" />
+              <>
+                <Pause className="h-3.5 w-3.5" />
+                <span>Pause</span>
+              </>
             )}
           </button>
         </div>
@@ -152,22 +185,35 @@ export default function StackedCardDeck({ castList = [], activeIndex = 0, onSele
 
           const displayedImage = showActorPhoto ? actorImg : characterImg;
 
+          const handleActivateCard = () => {
+            if (isFrontCard) {
+              cycleNextCard();
+            } else {
+              onSelectIndex(index);
+            }
+          };
+
           return (
             <div
               key={`${castItem.person?.id}-${castItem.character?.id}`}
+              role="button"
+              tabIndex={relativeOffset <= 4 ? 0 : -1}
+              aria-label={`${castItem.character?.name} portrayed by ${castItem.person?.name}. ${
+                isFrontCard ? 'Press Enter to cycle to next card' : 'Press Enter to bring card to front'
+              }`}
               style={style}
-              onClick={() => {
-                if (isFrontCard) {
-                  cycleNextCard();
-                } else {
-                  onSelectIndex(index);
+              onClick={handleActivateCard}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleActivateCard();
                 }
               }}
-              className={`card-stack-transition absolute inset-0 rounded-2xl overflow-hidden cursor-pointer border ${
+              className={`card-stack-transition absolute inset-0 rounded-2xl overflow-hidden cursor-pointer border text-left ${
                 isFrontCard
                   ? 'border-red-500/90 shadow-[0_18px_50px_rgba(220,38,38,0.38)]'
                   : 'border-white/15 shadow-[0_10px_25px_rgba(0,0,0,0.85)] hover:border-red-500/60'
-              } bg-zinc-950`}
+              } bg-[#101017]`}
             >
               {/* Portrait Image from API */}
               <div className="relative h-full w-full">
@@ -183,38 +229,37 @@ export default function StackedCardDeck({ castList = [], activeIndex = 0, onSele
                   </div>
                 )}
 
-                {/* Clean Dark Gradient Overlay (60-30-10 Rule) */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b10] via-black/35 to-transparent" />
 
                 {/* Top Corner Queue Badge */}
-                <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/15 text-[11px] font-mono-code font-bold text-zinc-200">
+                <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/15 text-xs font-mono-code font-bold text-zinc-200">
                   #{index + 1}
                 </div>
 
-                {/* Top-Left Live API Tag (10% Crimson Accent) */}
-                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-red-600/90 backdrop-blur-md text-[10px] font-mono-code uppercase tracking-wider text-white font-semibold shadow">
+                {/* Top-Left Live API Tag */}
+                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-red-600/90 backdrop-blur-md text-xs font-semibold uppercase tracking-wider text-white shadow">
                   {showActorPhoto ? 'Real Actor' : 'Character'}
                 </div>
 
                 {/* Bottom Card Identity Overlay */}
                 <div className="absolute bottom-0 inset-x-0 p-5">
-                  <div className="inline-flex items-center gap-1.5 text-xs font-mono-code text-red-400 mb-0.5">
+                  <div className="inline-flex items-center gap-1.5 text-xs font-medium text-red-400 mb-0.5">
                     <UserCheck className="h-3.5 w-3.5" />
                     <span>{castItem.person?.name}</span>
                   </div>
-                  <h3 className="text-2xl font-bold text-white font-serif-title leading-tight">
+                  <h2 className="text-2xl font-bold text-[#f5f5f5] font-serif-title leading-tight">
                     {castItem.character?.name}
-                  </h3>
-                  <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-300">
+                  </h2>
+                  <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-zinc-300">
                     <span>{castItem.person?.country?.name || 'Main Cast'}</span>
-                    <span className="text-red-400 font-mono-code">
+                    <span className="text-red-400 font-semibold">
                       {isFrontCard ? 'Click → Next' : 'Click → Focus'}
                     </span>
                   </div>
                 </div>
 
-                {/* Rule 7: Live Animated Timer Progress Bar at the bottom edge of the active card */}
-                {isFrontCard && !isPaused && (
+                {/* Rule 7: Live Animated Timer Progress Bar (Only runs when timer is NOT paused) */}
+                {isFrontCard && !isTimerPaused && (
                   <div className="absolute bottom-0 inset-x-0 h-1 bg-zinc-900/80 overflow-hidden">
                     <div
                       key={`timer-${activeIndex}`}
@@ -246,11 +291,12 @@ export default function StackedCardDeck({ castList = [], activeIndex = 0, onSele
               key={item.person?.id || idx}
               type="button"
               onClick={() => onSelectIndex(idx)}
+              aria-label={`Select card ${idx + 1}: ${item.character?.name}`}
               title={`${item.character?.name} (${item.person?.name})`}
-              className={`h-2 rounded-full transition-all cursor-pointer ${
+              className={`h-2.5 rounded-full transition-all cursor-pointer ${
                 idx === activeIndex
                   ? 'w-6 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)]'
-                  : 'w-2 bg-zinc-700 hover:bg-zinc-500'
+                  : 'w-2.5 bg-zinc-700 hover:bg-zinc-500'
               }`}
             />
           ))}

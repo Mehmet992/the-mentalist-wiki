@@ -19,6 +19,36 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours persistent TTL
 // Layer 1: Fast in-memory session cache
 const memoryCache = new Map();
 
+// In-memory session cache for interactive Investigation Lab state (not stored permanently in localStorage)
+const sessionInvestigationCache = {
+  scoreStats: { correct: 0, total: 0, streak: 0 },
+  suspectStatuses: {},
+};
+
+/**
+ * Reads or updates the in-memory cached Observation Test score & streak for the active session.
+ */
+export function getCachedQuizScore() {
+  return sessionInvestigationCache.scoreStats;
+}
+
+export function setCachedQuizScore(nextStats) {
+  sessionInvestigationCache.scoreStats = nextStats;
+  return sessionInvestigationCache.scoreStats;
+}
+
+/**
+ * Reads or updates the in-memory cached Red John Suspect Board markings for the active session.
+ */
+export function getCachedSuspectStatuses() {
+  return sessionInvestigationCache.suspectStatuses;
+}
+
+export function setCachedSuspectStatuses(nextStatuses) {
+  sessionInvestigationCache.suspectStatuses = nextStatuses;
+  return sessionInvestigationCache.suspectStatuses;
+}
+
 // Layer 2: In-flight Promise map to deduplicate simultaneous identical requests
 const inFlightRequests = new Map();
 
@@ -690,3 +720,112 @@ export function analyzeEpisodeMilestone(episode) {
     cleanSummary: summaryText,
   };
 }
+
+/**
+ * Searches and ranks episodes by relevance score so exact title matches
+ * (such as Season 6 Episode 8 "Red John" when searching "Red John") always
+ * appear at the very top (#1) before partial title or summary matches.
+ *
+ * @param {Array} episodes - Full array of 151 episode objects from TVmaze API
+ * @param {string} rawQuery - User's search query string
+ * @returns {Array} Sorted array of matching episodes ranked by relevance score
+ */
+export function searchAndRankEpisodes(episodes = [], rawQuery = '') {
+  const q = (rawQuery || '').trim().toLowerCase();
+  if (!q) return episodes;
+
+  const scored = [];
+
+  for (const ep of episodes) {
+    const titleLower = (ep.name || '').toLowerCase();
+    const summaryLower = stripHtmlTags(ep.summary || '').toLowerCase();
+    const sPad = String(ep.season).padStart(2, '0');
+    const ePad = String(ep.number).padStart(2, '0');
+    const codeA = `s${sPad}e${ePad}`;
+    const codeB = `s${ep.season}e${ep.number}`;
+    const codeC = `${ep.season}x${ePad}`;
+    const seasonEpPhrase = `season ${ep.season} episode ${ep.number}`;
+    const milestone = analyzeEpisodeMilestone(ep);
+
+    let score = 0;
+
+    // 1. Exact title match (e.g. "red john" -> S06E08 "Red John")
+    if (titleLower === q) {
+      score += 1000;
+    } else if (titleLower.startsWith(q)) {
+      // 2. Title starts with query (e.g. "Red John's Footsteps", "Red John's Rules")
+      score += 600;
+    } else if (titleLower.includes(q)) {
+      // 3. Title contains query anywhere
+      score += 350;
+    }
+
+    // 4. Episode code or "season X episode Y" match
+    if (
+      codeA.includes(q) ||
+      codeB.includes(q) ||
+      codeC.includes(q) ||
+      seasonEpPhrase.includes(q)
+    ) {
+      score += 500;
+    }
+
+    // 5. Special boost for the S06E08 Red John showdown when query mentions red john
+    if (q.includes('red john') && ep.season === 6 && ep.number === 8) {
+      score += 450;
+    }
+
+    // 6. Milestone tag match
+    if (milestone.milestoneTag.toLowerCase().includes(q)) {
+      score += 140;
+    }
+
+    // 7. Plot summary match
+    if (summaryLower.includes(q)) {
+      score += 60;
+    }
+
+    if (score > 0) {
+      scored.push({ episode: ep, score });
+    }
+  }
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return (b.episode.rating?.average || 0) - (a.episode.rating?.average || 0);
+  });
+
+  return scored.map((item) => item.episode);
+}
+
+const RECENT_VISITS_KEY = 'mentalist_recent_visits_v1';
+
+/**
+ * Records a recently visited episode or character in localStorage
+ * to support Nielsen's Heuristic #6 (Recognition Over Recall — Slide 26).
+ */
+export function recordRecentVisit(visitItem) {
+  if (!visitItem || !visitItem.path || !visitItem.title) return;
+  try {
+    const raw = localStorage.getItem(RECENT_VISITS_KEY);
+    const existing = raw ? JSON.parse(raw) : [];
+    const filtered = existing.filter((item) => item.path !== visitItem.path);
+    const updated = [visitItem, ...filtered].slice(0, 5);
+    localStorage.setItem(RECENT_VISITS_KEY, JSON.stringify(updated));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+/**
+ * Retrieves the list of recently visited dossiers from localStorage.
+ */
+export function getRecentVisits() {
+  try {
+    const raw = localStorage.getItem(RECENT_VISITS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+

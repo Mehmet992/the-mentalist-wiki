@@ -20,7 +20,11 @@ import {
   fetchRedJohnSuspectsBoard,
   fetchShowCast,
   fetchShowEpisodes,
+  getCachedQuizScore,
+  getCachedSuspectStatuses,
   getEpisodeAct,
+  setCachedQuizScore,
+  setCachedSuspectStatuses,
 } from '../services/api';
 import LoadingState from '../components/common/LoadingState';
 import ApiErrorState from '../components/common/ApiErrorState';
@@ -40,29 +44,15 @@ export default function InvestigationPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Suspect Board interactive states (persisted in localStorage)
-  const [suspectStatuses, setSuspectStatuses] = useState(() => {
-    try {
-      const saved = localStorage.getItem('mentalist_suspect_board_v1');
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+  // Suspect Board interactive states (stored in in-memory session cache instead of permanent localStorage)
+  const [suspectStatuses, setSuspectStatuses] = useState(() => getCachedSuspectStatuses());
   const [revealSpoilerVerdict, setRevealSpoilerVerdict] = useState(false);
   const [accusedSuspectId, setAccusedSuspectId] = useState(null);
 
-  // Mentalist Observation Test states
+  // Mentalist Observation Test states (stored in in-memory session cache)
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(null);
-  const [scoreStats, setScoreStats] = useState(() => {
-    try {
-      const saved = localStorage.getItem('mentalist_deduction_score_v1');
-      return saved ? JSON.parse(saved) : { correct: 0, total: 0, streak: 0 };
-    } catch {
-      return { correct: 0, total: 0, streak: 0 };
-    }
-  });
+  const [scoreStats, setScoreStats] = useState(() => getCachedQuizScore());
 
   /**
    * Loads the 7 Red John suspects from Fandom/TVmaze APIs along with all episodes and cast.
@@ -100,7 +90,7 @@ export default function InvestigationPage() {
   }, [loadInvestigationData]);
 
   /**
-   * Updates a suspect's investigation status ('CLEARED', 'PRIME', or null) and saves to localStorage.
+   * Updates a suspect's investigation status ('CLEARED', 'PRIME', or null) in the session cache.
    */
   const handleToggleSuspectState = (suspectId, nextState) => {
     setSuspectStatuses((prev) => {
@@ -109,11 +99,7 @@ export default function InvestigationPage() {
         ...prev,
         [suspectId]: current === nextState ? null : nextState,
       };
-      try {
-        localStorage.setItem('mentalist_suspect_board_v1', JSON.stringify(updated));
-      } catch {
-        // Ignore storage errors
-      }
+      setCachedSuspectStatuses(updated);
       return updated;
     });
   };
@@ -245,7 +231,8 @@ export default function InvestigationPage() {
   }, [episodes, cast, currentQuestion, generateLiveApiQuestion]);
 
   /**
-   * Handles user selection of an answer option in the Mentalist Observation Test.
+   * Handles user selection of an answer option in the Mentalist Observation Test
+   * and stores the updated score and streak in the in-memory session cache.
    */
   const handleSelectQuizOption = (index) => {
     if (selectedOptionIndex !== null || !currentQuestion) return;
@@ -258,11 +245,7 @@ export default function InvestigationPage() {
         total: prev.total + 1,
         streak: isRight ? prev.streak + 1 : 0,
       };
-      try {
-        localStorage.setItem('mentalist_deduction_score_v1', JSON.stringify(updated));
-      } catch {
-        // Ignore storage errors
-      }
+      setCachedQuizScore(updated);
       return updated;
     });
   };
@@ -373,9 +356,9 @@ export default function InvestigationPage() {
                 type="button"
                 onClick={() => {
                   setSuspectStatuses({});
+                  setCachedSuspectStatuses({});
                   setAccusedSuspectId(null);
                   setRevealSpoilerVerdict(false);
-                  localStorage.removeItem('mentalist_suspect_board_v1');
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-mono-code text-zinc-300 transition cursor-pointer"
               >
@@ -496,26 +479,15 @@ export default function InvestigationPage() {
                       </div>
                     </div>
 
-                    {/* Suspect Dossier Content */}
-                    <div className="p-4 space-y-2.5">
-                      <div className="text-[11px] font-mono-code text-red-400 truncate">
+                    {/* Suspect Dossier Content (No Debut/First Seen field) */}
+                    <div className="p-4 space-y-2.5 text-left">
+                      <div className="text-xs font-semibold text-red-400 truncate">
                         {suspect.job}
                       </div>
 
-                      <p className="text-xs text-zinc-300 leading-relaxed line-clamp-2">
+                      <p className="text-sm text-zinc-200 leading-[1.5] line-clamp-2">
                         {suspect.overview}
                       </p>
-
-                      <div className="grid grid-cols-2 gap-2 pt-1 text-[10px] font-mono-code">
-                        <div className="rounded-lg bg-black/60 border border-white/10 p-2">
-                          <span className="text-zinc-500 block">First Seen</span>
-                          <span className="text-zinc-200 truncate block">{suspect.firstEp}</span>
-                        </div>
-                        <div className="rounded-lg bg-black/60 border border-white/10 p-2">
-                          <span className="text-zinc-500 block">Final Case</span>
-                          <span className="text-zinc-200 truncate block">{suspect.lastEp}</span>
-                        </div>
-                      </div>
                     </div>
                   </div>
 

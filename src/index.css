@@ -3,45 +3,62 @@
 @source "./**/*.{js,jsx}";
 
 @layer base {
+  /* UI/UX Slide 10, 12 & 16: 16px base body text, 1.5 line-height, near-black #0b0b10 & off-white #f5f5f5 */
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* 60% Dominant Color: Deep Matte Obsidian Black */
-    background-color: #050508;
-    color: #f4f4f5;
+    font-size: 16px;
+    line-height: 1.5;
+    background-color: #0b0b10;
+    color: #f5f5f5;
     overflow-x: hidden;
   }
 
+  /* UI/UX Slide 10 & 12: Second font family for headings with ~1.2 tight line-height */
   h1, h2, h3, .font-serif-title {
     font-family: 'Cinzel', Georgia, serif;
+    line-height: 1.2;
   }
 
+  /* Uses the body font with tabular numerals so total typefaces remain strictly capped at 2 */
   .font-mono-code {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.03em;
+  }
+
+  /* UI/UX Slide 34: Visible keyboard focus ring for accessibility */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid #ef4444 !important;
+    outline-offset: 2px !important;
   }
 }
 
-/* Rule 6: Glassmorphism & Layered 30% Secondary Surfaces (Semi-translucent so fluid background shines through) */
+/* Rule 6: Glassmorphism & Layered 30% Secondary Surfaces */
 .glass-panel {
   background: linear-gradient(
     145deg,
-    rgba(16, 16, 22, 0.62) 0%,
-    rgba(8, 8, 12, 0.72) 75%,
-    rgba(45, 10, 15, 0.28) 100%
+    rgba(20, 20, 28, 0.72) 0%,
+    rgba(14, 14, 20, 0.82) 75%,
+    rgba(45, 12, 18, 0.28) 100%
   );
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.72);
 }
 
 .glass-card-interactive {
   background: linear-gradient(
     160deg,
-    rgba(18, 18, 25, 0.6) 0%,
-    rgba(8, 8, 12, 0.76) 100%
+    rgba(22, 22, 30, 0.7) 0%,
+    rgba(14, 14, 20, 0.85) 100%
   );
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   transition:
     transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
     border-color 0.3s ease,
@@ -49,7 +66,7 @@
 }
 
 .glass-card-interactive:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
   border-color: rgba(239, 68, 68, 0.55);
   box-shadow: 0 16px 36px -8px rgba(220, 38, 38, 0.25);
 }
@@ -95,65 +112,6 @@
 
 .animate-fade-slide {
   animation: fadeSlideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-/* Dynamic Fluid Background Keyframes */
-@keyframes fluidDriftOne {
-  0%, 100% {
-    transform: translate3d(0px, 0px, 0) scale(1) rotate(0deg);
-  }
-  33% {
-    transform: translate3d(110px, 65px, 0) scale(1.14) rotate(12deg);
-  }
-  66% {
-    transform: translate3d(-45px, 120px, 0) scale(0.92) rotate(-8deg);
-  }
-}
-
-@keyframes fluidDriftTwo {
-  0%, 100% {
-    transform: translate3d(0px, 0px, 0) scale(1) rotate(0deg);
-  }
-  33% {
-    transform: translate3d(-120px, 85px, 0) scale(1.12) rotate(-14deg);
-  }
-  66% {
-    transform: translate3d(55px, -75px, 0) scale(0.94) rotate(10deg);
-  }
-}
-
-@keyframes fluidDriftThree {
-  0%, 100% {
-    transform: translate3d(0px, 0px, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(95px, -85px, 0) scale(1.18);
-  }
-}
-
-@keyframes fluidWaveFloat {
-  0%, 100% {
-    transform: translate3d(0, 0, 0) scaleY(1);
-  }
-  50% {
-    transform: translate3d(-25px, 18px, 0) scaleY(1.06);
-  }
-}
-
-.fluid-orb-one {
-  animation: fluidDriftOne 22s ease-in-out infinite;
-}
-
-.fluid-orb-two {
-  animation: fluidDriftTwo 26s ease-in-out infinite;
-}
-
-.fluid-orb-three {
-  animation: fluidDriftThree 19s ease-in-out infinite;
-}
-
-.fluid-wave-svg {
-  animation: fluidWaveFloat 16s ease-in-out infinite;
 }
 
 /* Red John Easter Egg: Live SVG Brush-Stroke Painting Keyframes */
@@ -230,4 +188,3 @@
   stroke-dashoffset: 90;
   animation: paintRedJohnDrip 1.3s ease-out 2.3s forwards;
 }
-

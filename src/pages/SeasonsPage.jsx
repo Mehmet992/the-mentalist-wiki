@@ -370,22 +370,30 @@ export default function SeasonsPage() {
               </h2>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              <select
-                value={imageTypeFilter}
-                onChange={(e) => {
-                  setImageTypeFilter(e.target.value);
-                  setShowAllImages(false);
-                }}
-                aria-label="Filter Artwork by Type"
-                className="h-9 rounded-xl bg-black/80 border border-white/15 px-3 text-xs text-zinc-200 focus:outline-none focus:border-red-500"
-              >
-                {imageTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type === 'ALL' ? 'All Artwork Types' : `Type: ${type.toUpperCase()}`}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-wrap items-end gap-2.5">
+              <div className="text-left">
+                <label
+                  htmlFor="seasons-artwork-type-select"
+                  className="block text-xs font-semibold text-zinc-300 mb-1"
+                >
+                  Artwork Category
+                </label>
+                <select
+                  id="seasons-artwork-type-select"
+                  value={imageTypeFilter}
+                  onChange={(e) => {
+                    setImageTypeFilter(e.target.value);
+                    setShowAllImages(false);
+                  }}
+                  className="h-9 rounded-xl bg-[#0d0d13] border border-white/15 px-3 text-xs text-zinc-200"
+                >
+                  {imageTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type === 'ALL' ? 'All Artwork Types' : `Type: ${type.toUpperCase()}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {filteredImages.length > 4 && (
                 <button
@@ -475,22 +483,30 @@ export default function SeasonsPage() {
             </h2>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <select
-              value={crewRoleFilter}
-              onChange={(e) => {
-                setCrewRoleFilter(e.target.value);
-                setShowAllCrew(false);
-              }}
-              aria-label="Filter Production Crew by Role"
-              className="h-9 rounded-xl bg-black/80 border border-white/15 px-3.5 text-xs text-zinc-200 focus:outline-none focus:border-red-500"
-            >
-              {crewRoles.map((role) => (
-                <option key={role} value={role}>
-                  {role === 'ALL' ? 'All Crew Roles' : role}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-wrap items-end gap-2.5">
+            <div className="text-left">
+              <label
+                htmlFor="seasons-crew-role-select"
+                className="block text-xs font-semibold text-zinc-300 mb-1"
+              >
+                Crew Role
+              </label>
+              <select
+                id="seasons-crew-role-select"
+                value={crewRoleFilter}
+                onChange={(e) => {
+                  setCrewRoleFilter(e.target.value);
+                  setShowAllCrew(false);
+                }}
+                className="h-9 rounded-xl bg-[#0d0d13] border border-white/15 px-3.5 text-xs text-zinc-200"
+              >
+                {crewRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {role === 'ALL' ? 'All Crew Roles' : role}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {filteredCrew.length > 8 && (
               <button

@@ -19,6 +19,7 @@ import {
   fetchEpisodeDetails,
   fetchFandomWikiArticle,
   fetchShowEpisodes,
+  recordRecentVisit,
 } from '../services/api';
 import LoadingState from '../components/common/LoadingState';
 import ApiErrorState from '../components/common/ApiErrorState';
@@ -63,6 +64,17 @@ export default function EpisodeDetailPage() {
       setEpisode(epData);
       setAllEpisodes(episodeList);
       setWikiArticle(fandomData);
+
+      // Record visit for Recognition Over Recall in Ctrl+K Search (UI/UX Slide 26)
+      recordRecentVisit({
+        path: `/episodes/${epData.id}`,
+        badge: `S${String(epData.season).padStart(2, '0')}E${String(epData.number).padStart(
+          2,
+          '0'
+        )}`,
+        title: epData.name,
+      });
+
       setLoading(false);
     } catch (err) {
       setError(err);

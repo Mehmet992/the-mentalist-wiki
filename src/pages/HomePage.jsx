@@ -39,6 +39,7 @@ export default function HomePage() {
   const [seasonsList, setSeasonsList] = useState([]);
   const [episodesList, setEpisodesList] = useState([]);
   const [activeCastIndex, setActiveCastIndex] = useState(0);
+  const [isBioExpanded, setIsBioExpanded] = useState(false);
   const [showFullSynopsis, setShowFullSynopsis] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -212,11 +213,16 @@ export default function HomePage() {
               castList={castList}
               activeIndex={activeCastIndex}
               onSelectIndex={setActiveCastIndex}
+              isBioExpanded={isBioExpanded}
             />
           </div>
 
           <div className="lg:col-span-7">
-            <DualIdentityPanel activeCastItem={activeCastItem} />
+            <DualIdentityPanel
+              activeCastItem={activeCastItem}
+              expandBios={isBioExpanded}
+              onToggleExpandBios={() => setIsBioExpanded((prev) => !prev)}
+            />
           </div>
         </div>
       </section>

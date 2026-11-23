@@ -184,25 +184,40 @@ export default function CharactersPage() {
           </button>
         </div>
 
-        {/* Search & Filter Controls */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-12 gap-4">
-          <div className="sm:col-span-6 relative">
-            <Search className="h-4 w-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by Character (e.g. Patrick Jane) or Real Actor (e.g. Simon Baker)..."
-              className="w-full rounded-xl bg-black border border-red-900/60 pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-red-500"
-            />
+        {/* Search & Filter Controls with Visible Sticking Labels (UI/UX Slide 6 & 37) */}
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-12 gap-4 text-left">
+          <div className="sm:col-span-6">
+            <label
+              htmlFor="characters-search-input"
+              className="block text-xs font-semibold text-zinc-300 mb-1.5"
+            >
+              Search Character Name, Real Actor, or Country
+            </label>
+            <div className="relative">
+              <Search className="h-4 w-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                id="characters-search-input"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="e.g. Patrick Jane, Simon Baker, Robin Tunney..."
+                className="w-full h-10 rounded-xl bg-[#0d0d13] border border-white/15 pl-10 pr-4 text-sm text-[#f5f5f5] placeholder-zinc-500"
+              />
+            </div>
           </div>
 
           <div className="sm:col-span-3">
+            <label
+              htmlFor="characters-scope-select"
+              className="block text-xs font-semibold text-zinc-300 mb-1.5"
+            >
+              Cast Category
+            </label>
             <select
+              id="characters-scope-select"
               value={castScope}
               onChange={(e) => setCastScope(e.target.value)}
-              aria-label="Filter by Cast Scope"
-              className="w-full rounded-xl bg-black border border-red-900/60 px-3.5 py-2.5 text-xs sm:text-sm text-zinc-200 focus:outline-none focus:border-red-500"
+              className="w-full h-10 rounded-xl bg-[#0d0d13] border border-white/15 px-3.5 text-sm text-zinc-200"
             >
               <option value="ALL">All Cast ({combinedDirectory.length})</option>
               <option value="MAIN">Main Series Cast ({mainCast.length})</option>
@@ -211,11 +226,17 @@ export default function CharactersPage() {
           </div>
 
           <div className="sm:col-span-3">
+            <label
+              htmlFor="characters-gender-select"
+              className="block text-xs font-semibold text-zinc-300 mb-1.5"
+            >
+              Actor Gender
+            </label>
             <select
+              id="characters-gender-select"
               value={genderFilter}
               onChange={(e) => setGenderFilter(e.target.value)}
-              aria-label="Filter by Gender"
-              className="w-full rounded-xl bg-black border border-red-900/60 px-3.5 py-2.5 text-xs sm:text-sm text-zinc-200 focus:outline-none focus:border-red-500"
+              className="w-full h-10 rounded-xl bg-[#0d0d13] border border-white/15 px-3.5 text-sm text-zinc-200"
             >
               <option value="ALL">All Genders</option>
               <option value="Male">Male Actors</option>

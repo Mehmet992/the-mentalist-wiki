@@ -16,7 +16,8 @@ import RedJohnEasterEgg from '../common/RedJohnEasterEgg';
 
 /**
  * Top navigation bar component with a balanced 3-zone grid layout:
- * Left: Brand Emblem (Clicking the Red John Smiley favicon triggers the Easter Egg)
+ * Left: Brand Emblem & Title (Single-click always navigates Home per UI/UX Slide 28;
+ *       Double-clicking the emblem or typing "tyger, tyger" in search triggers the Easter Egg).
  * Center: Symmetrically aligned pill dock for page navigation buttons
  * Right: Ctrl+K Instant Spotlight Search trigger
  */
@@ -34,7 +35,7 @@ export default function Navbar() {
     { to: '/investigation', label: 'RJ Board & Quiz', icon: Brain },
   ];
 
-  // Global listener for Ctrl+K Spotlight Search AND typing "tyger, tyger" into any search input
+  // Global listener for Ctrl+K Spotlight Search, custom footer event, and typing "tyger, tyger" into any search input
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -55,11 +56,17 @@ export default function Navbar() {
       }
     };
 
+    const handleCustomOpenEasterEgg = () => {
+      setEasterEggOpen(true);
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('input', handleSearchInputEasterEgg);
+    window.addEventListener('open-red-john-easter-egg', handleCustomOpenEasterEgg);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('input', handleSearchInputEasterEgg);
+      window.removeEventListener('open-red-john-easter-egg', handleCustomOpenEasterEgg);
     };
   }, []);
 
@@ -75,35 +82,38 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0b0b10]/85 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
-          {/* Left Zone: Red John Smiley Favicon (Triggers Easter Egg) + Brand Title Link */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => setEasterEggOpen(true)}
-              title="Click to reveal Red John's Calling Card"
-              className="relative group cursor-pointer rounded-xl focus:outline-none"
-            >
-              <img
-                src="/favicon.svg"
-                alt="Red John Smiley Emblem"
-                className="h-10 w-10 rounded-xl shadow-[0_0_18px_rgba(220,38,38,0.55)] group-hover:scale-110 group-hover:shadow-[0_0_26px_rgba(239,68,68,0.9)] transition-all"
-              />
-            </button>
-
-            <Link to="/" className="flex items-center gap-2">
-              <span className="font-serif-title text-base sm:text-lg font-bold tracking-wider text-white whitespace-nowrap hover:text-red-400 transition">
+          {/* Left Zone: Logo Top-Left ALWAYS goes Home on single click (Slide 28 Mental Model) */}
+          <Link
+            to="/"
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              setEasterEggOpen(true);
+            }}
+            title="Go to Home Page (Double-click emblem or type 'tyger, tyger' in search for Red John Calling Card)"
+            className="flex items-center gap-3 shrink-0 group rounded-xl"
+          >
+            <img
+              src="/favicon.svg"
+              alt="The Mentalist Home"
+              className="h-10 w-10 rounded-xl shadow-[0_0_18px_rgba(220,38,38,0.55)] group-hover:scale-105 transition-transform"
+            />
+            <div className="flex items-center gap-2">
+              <span className="font-serif-title text-base sm:text-lg font-bold tracking-wider text-[#f5f5f5] whitespace-nowrap group-hover:text-red-400 transition">
                 THE MENTALIST
               </span>
               <span className="px-2 py-0.5 text-[10px] font-mono-code uppercase tracking-widest rounded-md bg-red-600/20 border border-red-500/40 text-red-400">
                 WIKI
               </span>
-            </Link>
-          </div>
+            </div>
+          </Link>
 
           {/* Center Zone: Cleanly Aligned Page Navigation Pill Dock */}
-          <nav className="hidden lg:flex items-center justify-center p-1.5 rounded-2xl bg-zinc-900/80 border border-white/10 gap-1">
+          <nav
+            aria-label="Primary Navigation"
+            className="hidden lg:flex items-center justify-center p-1.5 rounded-2xl bg-zinc-900/80 border border-white/10 gap-1"
+          >
             {navItems.map((item) => {
               const IconComponent = item.icon;
               return (
@@ -129,7 +139,7 @@ export default function Navbar() {
             >
               <Search className="h-4 w-4 text-red-400" />
               <span className="hidden sm:inline">Search Archive</span>
-              <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono-code rounded bg-black border border-white/10 text-zinc-400">
+              <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono-code rounded bg-[#0b0b10] border border-white/10 text-zinc-400">
                 Ctrl+K
               </kbd>
             </button>
@@ -148,7 +158,10 @@ export default function Navbar() {
 
         {/* Mobile Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-white/10 bg-black/95 px-4 pt-3 pb-5 grid grid-cols-2 gap-2">
+          <nav
+            aria-label="Mobile Navigation"
+            className="lg:hidden border-t border-white/10 bg-[#0b0b10]/95 px-4 pt-3 pb-5 grid grid-cols-2 gap-2"
+          >
             {navItems.map((item) => {
               const IconComponent = item.icon;
               return (
@@ -170,7 +183,7 @@ export default function Navbar() {
                 </NavLink>
               );
             })}
-          </div>
+          </nav>
         )}
       </header>
 

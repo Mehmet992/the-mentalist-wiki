@@ -4,9 +4,10 @@ import { ShieldAlert, X } from 'lucide-react';
 /**
  * ============================================================================
  * INSTRUCTOR NOTE — RED JOHN CALLING CARD EASTER EGG:
- * This hidden Easter Egg is triggered in two ways:
- * 1. Clicking the Red John Smiley favicon emblem at the top-left of the Navbar.
- * 2. Typing "tyger" or "tyger, tyger" into any search bar across the website.
+ * This hidden Easter Egg is triggered in three ways (while preserving the
+ * universal convention on Slide 28 that single-clicking the top-left logo goes Home):
+ * 1. Typing "tyger" or "tyger, tyger" into any search bar across the website.
+ * 2. Clicking the Red John Smiley emblem in the Footer (or double-clicking the top-left emblem).
  * When activated, it live-paints Red John's signature crimson smiley face
  * stroke-by-stroke across the screen using SVG path animations.
  * ============================================================================
@@ -16,14 +17,20 @@ import { ShieldAlert, X } from 'lucide-react';
  * @param {Function} props.onClose - Callback to dismiss the Easter egg
  */
 export default function RedJohnEasterEgg({ isOpen, onClose }) {
-  // Allow closing the Easter Egg overlay with the Escape key
+  // Lock background scroll and allow closing the Easter Egg overlay with Escape
   useEffect(() => {
     if (!isOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKey);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
