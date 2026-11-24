@@ -22,6 +22,7 @@ import {
   fetchFandomWikiArticle,
   fetchShowEpisodes,
   getMemoryPalaceState,
+  isRedJohnShowdownEpisode,
   recordRecentVisit,
   toggleMemoryPalacePinned,
   toggleMemoryPalaceSolved,
@@ -259,7 +260,7 @@ export default function EpisodeDetailPage() {
                 </div>
               ) : (
                 <p className="text-xs text-zinc-500">
-                  Standard series unit crew credit (TVmaze ID #{episode.id}).
+                  Standard series unit crew credit.
                 </p>
               )}
             </div>
@@ -290,7 +291,14 @@ export default function EpisodeDetailPage() {
               <div className="mt-3 flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setMemoryPalace({ ...toggleMemoryPalacePinned(episode.id) })}
+                  onClick={() => {
+                    const wasFavorited = memoryPalace.pinnedIds.includes(Number(episode.id));
+                    const updated = toggleMemoryPalacePinned(episode.id);
+                    setMemoryPalace({ ...updated });
+                    if (!wasFavorited && isRedJohnShowdownEpisode(episode)) {
+                      window.dispatchEvent(new CustomEvent('mentalist:rj-smiley-flash'));
+                    }
+                  }}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
                     memoryPalace.pinnedIds.includes(episode.id)
                       ? 'bg-red-600/20 border-red-400 text-red-300'
@@ -419,7 +427,7 @@ export default function EpisodeDetailPage() {
 
           {guestCast.length === 0 ? (
             <p className="text-xs text-zinc-400">
-              No additional guest cast records returned for this episode by TVmaze.
+              No additional guest cast records available for this episode.
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">

@@ -8,31 +8,12 @@ import {
   Sparkles,
   Upload,
 } from 'lucide-react';
-
-const PRESET_TEMPLATES = {
-  CBI: {
-    style: 'CBI',
-    department: 'STATE OF CALIFORNIA • DEPARTMENT OF JUSTICE',
-    agency: 'CALIFORNIA BUREAU OF INVESTIGATION',
-    acronym: 'C.B.I.',
-    rank: 'INDEPENDENT CONSULTANT',
-    specialty: 'Cold Reading, Behavioral Profiling & Homicide',
-    office: 'Sacramento HQ — Serious Crimes Unit',
-    badgeNumber: 'CBI-0492-CA',
-    clearance: 'AUTHORIZED CRIME SCENE ACCESS',
-  },
-  FBI: {
-    style: 'FBI',
-    department: 'UNITED STATES DEPARTMENT OF JUSTICE',
-    agency: 'FEDERAL BUREAU OF INVESTIGATION',
-    acronym: 'F.B.I.',
-    rank: 'SPECIAL AGENT',
-    specialty: 'Major Crimes & Behavioral Analysis',
-    office: 'Austin Field Division — Texas',
-    badgeNumber: 'FBI-8841-US',
-    clearance: 'FEDERAL LAW ENFORCEMENT COMMISSION',
-  },
-};
+import {
+  BADGE_PRESETS as PRESET_TEMPLATES,
+  computeCoverCropRect,
+  formatBadgeFilename,
+  isConsultantRole,
+} from '../../utils/badgeHelpers';
 
 /**
  * Renders the authentic series-style CBI 7-Point Gold Star Shield or FBI Gold Eagle Shield SVG.
@@ -346,11 +327,27 @@ export default function AgentBadgeGenerator({ castList = [] }) {
         126
       );
 
-      // Left Photo Box
+      // Left Photo Box (Aspect-preserving top-biased cover crop so uploaded photos never stretch!)
       ctx.fillStyle = '#cbd5e1';
       ctx.fillRect(38, 156, 175, 215);
       if (loadedImg) {
-        ctx.drawImage(loadedImg, 38, 156, 175, 215);
+        const crop = computeCoverCropRect(
+          loadedImg.naturalWidth || loadedImg.width,
+          loadedImg.naturalHeight || loadedImg.height,
+          175,
+          215
+        );
+        ctx.drawImage(
+          loadedImg,
+          crop.sx,
+          crop.sy,
+          crop.sw,
+          crop.sh,
+          38,
+          156,
+          175,
+          215
+        );
       }
       ctx.strokeStyle = '#1e3a8a';
       ctx.lineWidth = 3;
@@ -437,12 +434,18 @@ export default function AgentBadgeGenerator({ castList = [] }) {
       ctx.textAlign = 'right';
       ctx.fillText(`SERIAL: ${badgeNumber}`, 720, 424);
 
-      const link = document.createElement('a');
-      link.download = `${(agentName || 'agent')
-        .toLowerCase()
-        .replace(/\s+/g, '-')}-${badgeStyle.toLowerCase()}-badge.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      const filename = formatBadgeFilename(agentName, badgeStyle);
+      try {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch {
+        // Fallback if a remote cast photo taints the canvas due to CORS headers
+        if (loadedImg) {
+          drawCardContents(null);
+        }
+      }
     };
 
     const img = new Image();
@@ -452,7 +455,7 @@ export default function AgentBadgeGenerator({ castList = [] }) {
     img.src = activePhotoUrl;
   };
 
-  const isConsultantRank = rank.toLowerCase().includes('consultant');
+  const isConsultantRank = isConsultantRole(rank);
 
   return (
     <div className="mb-8 glass-panel rounded-3xl p-5 sm:p-6 text-left">

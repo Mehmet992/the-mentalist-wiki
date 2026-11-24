@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import FluidBackground from './components/layout/FluidBackground';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import ScrollToTopButton from './components/common/ScrollToTopButton';
+import RedJohnSmileyFlash from './components/common/RedJohnSmileyFlash';
 import HomePage from './pages/HomePage';
 import TimelinePage from './pages/TimelinePage';
 import EpisodesPage from './pages/EpisodesPage';
@@ -20,6 +21,15 @@ import NotFoundPage from './pages/NotFoundPage';
  * Floating ScrollToTopButton, and Footer.
  */
 export default function App() {
+  const [showSmileyFlash, setShowSmileyFlash] = useState(false);
+
+  // Listen for the silent S06E08 Favorite trigger event
+  useEffect(() => {
+    const handleFlashEvent = () => setShowSmileyFlash(true);
+    window.addEventListener('mentalist:rj-smiley-flash', handleFlashEvent);
+    return () => window.removeEventListener('mentalist:rj-smiley-flash', handleFlashEvent);
+  }, []);
+
   return (
     <div className="relative min-h-screen flex flex-col bg-transparent text-zinc-100">
       <FluidBackground />
@@ -39,6 +49,10 @@ export default function App() {
       </main>
       <ScrollToTopButton />
       <Footer />
+      <RedJohnSmileyFlash
+        isOpen={showSmileyFlash}
+        onClose={() => setShowSmileyFlash(false)}
+      />
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -17,16 +18,15 @@ import {
   XCircle,
 } from 'lucide-react';
 import {
-  analyzeEpisodeMilestone,
   fetchRedJohnSuspectsBoard,
   fetchShowCast,
   fetchShowEpisodes,
   getCachedQuizScore,
   getCachedSuspectStatuses,
-  getEpisodeAct,
   setCachedQuizScore,
   setCachedSuspectStatuses,
 } from '../services/api';
+import { generateNextUniqueObservationQuestion } from '../utils/quizHelpers';
 import LoadingState from '../components/common/LoadingState';
 import ApiErrorState from '../components/common/ApiErrorState';
 
@@ -54,6 +54,12 @@ export default function InvestigationPage() {
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(null);
   const [scoreStats, setScoreStats] = useState(() => getCachedQuizScore());
+  const [questionNumber, setQuestionNumber] = useState(0);
+
+  // Tracks every asked question key (e.g. "SYNOPSIS:123", "ACT:45", "CAST:7") so no question repeats
+  const askedQuestionKeysRef = useRef(new Set());
+  const lastQuestionTypeRef = useRef(null);
+  const hasInitializedQuestionRef = useRef(false);
 
   /**
    * Loads the 7 Red John suspects from Fandom/TVmaze APIs along with all episodes and cast.
@@ -106,14 +112,15 @@ export default function InvestigationPage() {
   }, [accusedSuspectId]);
 
   /**
-   * Updates a suspect's investigation status ('CLEARED', 'PRIME', or null) in the session cache.
+   * Records a Red John accusation in session cache and opens the centered Verdict Modal.
+   * Wrong accusations are marked 'WRONG_ACCUSED' so a red X appears on the suspect card.
    */
-  const handleToggleSuspectState = (suspectId, nextState) => {
+  const handleAccuseSuspect = (suspect) => {
+    setAccusedSuspectId(suspect.id);
     setSuspectStatuses((prev) => {
-      const current = prev[suspectId];
       const updated = {
         ...prev,
-        [suspectId]: current === nextState ? null : nextState,
+        [suspect.id]: suspect.isTrueRedJohn ? 'CONFIRMED_RED_JOHN' : 'WRONG_ACCUSED',
       };
       setCachedSuspectStatuses(updated);
       return updated;
@@ -121,127 +128,36 @@ export default function InvestigationPage() {
   };
 
   /**
-   * Dynamically generates a fresh Mentalist Observation Test question directly from
-   * the live TVmaze episodes and cast arrays (zero hardcoded trivia questions).
+   * Dynamically generates a guaranteed non-repeating Mentalist Observation Test question
+   * from the live episodes and cast pools by delegating to generateNextUniqueObservationQuestion.
    */
   const generateLiveApiQuestion = useCallback(
     (epPool = episodes, castPool = cast) => {
-      if (!epPool.length || !castPool.length) return;
-
-      const questionTypes = ['SYNOPSIS_TO_TITLE', 'ACT_CLASSIFICATION', 'ACTOR_TO_CHARACTER'];
-      const chosenType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
-
-      setSelectedOptionIndex(null);
-
-      if (chosenType === 'SYNOPSIS_TO_TITLE') {
-        const validEps = epPool.filter((e) => e.summary && e.name);
-        const target = validEps[Math.floor(Math.random() * validEps.length)];
-        const distractors = validEps
-          .filter((e) => e.id !== target.id)
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 3);
-
-        const options = [target, ...distractors]
-          .sort(() => 0.5 - Math.random())
-          .map((ep) => ({
-            label: `S${String(ep.season).padStart(2, '0')}E${String(ep.number).padStart(
-              2,
-              '0'
-            )} — "${ep.name}"`,
-            isCorrect: ep.id === target.id,
-          }));
-
-        setCurrentQuestion({
-          typeLabel: 'Case File Synopsis Deduction',
-          prompt:
-            'Observe the following live case synopsis and still from the API. Which episode does this case belong to?',
-          clueText: analyzeEpisodeMilestone(target).cleanSummary,
-          image: target.image?.original || target.image?.medium || null,
-          options,
-          explanation: `This case is Season ${target.season}, Episode ${target.number}: "${target.name}" (Aired ${target.airdate}, Rating ★ ${
-            target.rating?.average || 'N/A'
-          }).`,
-          relatedLink: `/episodes/${target.id}`,
-          relatedLinkLabel: `Inspect S${target.season}E${target.number} Case File`,
-        });
-        return;
-      }
-
-      if (chosenType === 'ACT_CLASSIFICATION') {
-        // Pick an episode excluding the Pilot so the title color clue is fair
-        const pool = epPool.filter((e) => !(e.season === 1 && e.number === 1));
-        const target = pool[Math.floor(Math.random() * pool.length)];
-        const trueAct = getEpisodeAct(target);
-
-        const options = [
-          {
-            label: 'Act I: The Red John Pursuit (S01E01 – S06E08 • CBI Era)',
-            isCorrect: trueAct === 'RED_JOHN_ACT',
-          },
-          {
-            label: 'Act II: The FBI & New Dawn Era (S06E09 – S07E13 • Post-Red John)',
-            isCorrect: trueAct === 'FBI_ACT',
-          },
-        ];
-
-        setCurrentQuestion({
-          typeLabel: 'Episode Color Motif & Act Deduction',
-          prompt: `Examine the episode title "${target.name}" (Aired ${target.airdate}). Using Patrick Jane's title-color rule, which narrative Act does this episode belong to?`,
-          clueText: `Episode Title: "${target.name}" • Runtime: ${target.runtime || 60} mins • Rating: ★ ${
-            target.rating?.average || 'N/A'
-          }`,
-          image: target.image?.original || target.image?.medium || null,
-          options,
-          explanation: `"${target.name}" is Season ${target.season}, Episode ${target.number}, which aired during ${
-            trueAct === 'RED_JOHN_ACT'
-              ? 'Act I (The CBI Red John Hunt, where titles reference shades of red/crimson).'
-              : 'Act II (The FBI Era after S06E08, where titles shift to Blue, Green, White, Silver, and Gold).'
-          }`,
-          relatedLink: `/episodes/${target.id}`,
-          relatedLinkLabel: `Open "${target.name}" Dossier`,
-        });
-        return;
-      }
-
-      // ACTOR_TO_CHARACTER deduction round
-      const targetCast = castPool[Math.floor(Math.random() * castPool.length)];
-      const distractors = castPool
-        .filter((c) => c.person?.id !== targetCast.person?.id)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3);
-
-      const options = [targetCast, ...distractors]
-        .sort(() => 0.5 - Math.random())
-        .map((c) => ({
-          label: `${c.character?.name} (Portrayed by ${c.person?.name})`,
-          isCorrect: c.person?.id === targetCast.person?.id,
-        }));
-
-      setCurrentQuestion({
-        typeLabel: 'Dual-Identity Cast Observation',
-        prompt: `This actor was born on ${
-          targetCast.person?.birthday || 'record'
-        } (${
-          targetCast.person?.country?.name || 'International'
-        }). Which character do they portray in The Mentalist?`,
-        clueText: `Real Actor Identity: ${targetCast.person?.name}`,
-        image:
-          targetCast.person?.image?.original ||
-          targetCast.person?.image?.medium ||
-          targetCast.character?.image?.medium ||
-          null,
-        options,
-        explanation: `${targetCast.person?.name} portrays ${targetCast.character?.name} in The Mentalist.`,
-        relatedLink: `/characters/${targetCast.person?.id}`,
-        relatedLinkLabel: `Open ${targetCast.character?.name} Profile`,
+      const result = generateNextUniqueObservationQuestion({
+        episodes: epPool,
+        cast: castPool,
+        askedKeysSet: askedQuestionKeysRef.current,
+        lastType: lastQuestionTypeRef.current,
       });
+
+      if (!result) return;
+      lastQuestionTypeRef.current = result.questionType;
+      setSelectedOptionIndex(null);
+      setQuestionNumber(result.totalAsked);
+      setCurrentQuestion(result.question);
     },
     [episodes, cast]
   );
 
-  // Generate the initial observation question once API data finishes loading
+  // Generate the initial observation question once data finishes loading
   useEffect(() => {
-    if (episodes.length > 0 && cast.length > 0 && !currentQuestion) {
+    if (
+      episodes.length > 0 &&
+      cast.length > 0 &&
+      !currentQuestion &&
+      !hasInitializedQuestionRef.current
+    ) {
+      hasInitializedQuestionRef.current = true;
       generateLiveApiQuestion(episodes, cast);
     }
   }, [episodes, cast, currentQuestion, generateLiveApiQuestion]);
@@ -270,8 +186,7 @@ export default function InvestigationPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <LoadingState
-          message="Loading Patrick Jane's Final 7 Red John Suspects & Deduction Lab from APIs..."
-          endpointHint="thementalist.fandom.com/api.php & api.tvmaze.com"
+          message="Loading Patrick Jane's Final 7 Red John Suspects & Deduction Lab..."
         />
       </div>
     );
@@ -341,11 +256,10 @@ export default function InvestigationPage() {
           {/* Board Controls Bar */}
           <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
             <div className="text-xs sm:text-sm text-zinc-300">
-              <strong className="text-white">How to Investigate:</strong> Mark suspects as{' '}
-              <span className="text-zinc-400 underline">Cleared</span> or{' '}
-              <span className="text-red-400 font-semibold">Prime Suspect</span>, or click{' '}
-              <strong className="text-red-400">Accuse Suspect</strong> to test if you found Red
-              John.
+              <strong className="text-white">How to Investigate:</strong> Review each suspect&apos;s
+              dossier and click <strong className="text-red-400">Accuse as Red John</strong> to
+              deliver your verdict. Wrong accusations are marked with a{' '}
+              <span className="text-red-400 font-semibold">Red X</span> on the board.
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
@@ -386,9 +300,12 @@ export default function InvestigationPage() {
           {/* 7 Final Suspects Corkboard Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {suspects.map((suspect, index) => {
-              const boardState = suspectStatuses[suspect.id]; // 'CLEARED' | 'PRIME' | null
+              const boardState = suspectStatuses[suspect.id]; // 'WRONG_ACCUSED' | 'CONFIRMED_RED_JOHN' | null
+              const isWronglyAccused = boardState === 'WRONG_ACCUSED' && !suspect.isTrueRedJohn;
               const isRevealedRedJohn =
-                (revealSpoilerVerdict || accusedSuspectId === suspect.id) &&
+                (revealSpoilerVerdict ||
+                  accusedSuspectId === suspect.id ||
+                  boardState === 'CONFIRMED_RED_JOHN') &&
                 suspect.isTrueRedJohn;
 
               return (
@@ -396,11 +313,9 @@ export default function InvestigationPage() {
                   key={suspect.id}
                   className={`glass-card-interactive rounded-2xl overflow-hidden flex flex-col justify-between relative ${
                     isRevealedRedJohn
-                      ? 'border-2 border-red-500 shadow-[0_0_35px_rgba(239,68,68,0.5)]'
-                      : boardState === 'PRIME'
-                      ? 'border-2 border-amber-500/80'
-                      : boardState === 'CLEARED'
-                      ? 'opacity-50 grayscale'
+                      ? 'border-2 border-emerald-500 shadow-[0_0_35px_rgba(16,185,129,0.35)]'
+                      : isWronglyAccused
+                      ? 'border-2 border-red-600/70 bg-red-950/15'
                       : ''
                   }`}
                 >
@@ -428,7 +343,9 @@ export default function InvestigationPage() {
                                 e.currentTarget.src = suspect.fallbackImage;
                               }
                             }}
-                            className="relative z-10 h-full w-auto max-w-full object-contain pt-2"
+                            className={`relative z-10 h-full w-auto max-w-full object-contain pt-2 transition duration-300 ${
+                              isWronglyAccused ? 'grayscale-[55%] brightness-75' : ''
+                            }`}
                           />
                         </>
                       ) : (
@@ -443,17 +360,36 @@ export default function InvestigationPage() {
                       </span>
 
                       {isRevealedRedJohn && (
-                        <span className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-red-600 text-xs font-mono-code font-bold text-white shadow-lg">
+                        <span className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-emerald-600 text-xs font-mono-code font-bold text-white shadow-lg">
                           TRUE RED JOHN
                         </span>
                       )}
 
-                      {boardState === 'CLEARED' && !isRevealedRedJohn && (
-                        <div className="absolute inset-0 z-20 bg-black/60 flex items-center justify-center">
-                          <span className="px-4 py-1.5 rounded-lg border-2 border-zinc-400 text-zinc-200 font-mono-code text-xs font-bold uppercase -rotate-12">
-                            CLEARED BY USER
+                      {isWronglyAccused && (
+                        <>
+                          <span className="absolute top-3 right-3 z-30 px-2.5 py-1 rounded-lg bg-red-600 text-[11px] font-mono-code font-bold text-white shadow-lg uppercase">
+                            Wrong Verdict
                           </span>
-                        </div>
+                          {/* Bold Red X Mark Overlay indicating this suspect was wrongly accused */}
+                          <div
+                            aria-label="Wrong Accusation Mark"
+                            className="absolute inset-0 z-20 bg-red-950/35 flex items-center justify-center pointer-events-none"
+                          >
+                            <svg
+                              viewBox="0 0 120 120"
+                              className="w-32 h-32 text-red-600 drop-shadow-[0_0_16px_rgba(220,38,38,0.85)] opacity-90"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M22 22 L98 98 M98 22 L22 98"
+                                stroke="currentColor"
+                                strokeWidth="14"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </div>
+                        </>
                       )}
 
                       <div className="absolute bottom-3 left-3 right-3 z-20 text-left">
@@ -467,7 +403,7 @@ export default function InvestigationPage() {
                       </div>
                     </div>
 
-                    {/* Suspect Dossier Content (No Debut/First Seen field) */}
+                    {/* Suspect Dossier Content */}
                     <div className="p-4 space-y-2.5 text-left">
                       <div className="text-xs font-semibold text-red-400 truncate">
                         {suspect.job}
@@ -479,48 +415,32 @@ export default function InvestigationPage() {
                     </div>
                   </div>
 
-                  {/* Interactive Suspect Controls */}
-                  <div className="p-4 pt-3 border-t border-white/10 space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
+                  {/* Interactive Accusation Action */}
+                  <div className="p-4 pt-3 border-t border-white/10">
+                    <div className="flex items-center justify-between gap-2">
                       <button
                         type="button"
-                        onClick={() => handleToggleSuspectState(suspect.id, 'CLEARED')}
-                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono-code border transition cursor-pointer ${
-                          boardState === 'CLEARED'
-                            ? 'bg-zinc-800 border-white/30 text-white'
-                            : 'bg-zinc-900/80 border-white/10 text-zinc-400 hover:text-white'
+                        onClick={() => handleAccuseSuspect(suspect)}
+                        className={`flex-1 px-3 py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                          isRevealedRedJohn
+                            ? 'bg-emerald-600/20 hover:bg-emerald-600 border-emerald-500/60 text-emerald-300 hover:text-white'
+                            : isWronglyAccused
+                            ? 'bg-red-950/60 hover:bg-red-900/70 border-red-500/60 text-red-300'
+                            : 'bg-red-600/20 hover:bg-red-600 border-red-500/40 text-red-300 hover:text-white'
                         }`}
                       >
-                        {boardState === 'CLEARED' ? '✓ Cleared' : 'Mark Cleared'}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleToggleSuspectState(suspect.id, 'PRIME')}
-                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono-code border transition cursor-pointer ${
-                          boardState === 'PRIME'
-                            ? 'bg-amber-500/20 border-amber-400 text-amber-300'
-                            : 'bg-zinc-900/80 border-white/10 text-zinc-400 hover:text-amber-300'
-                        }`}
-                      >
-                        {boardState === 'PRIME' ? '★ Prime' : 'Flag Prime'}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setAccusedSuspectId(suspect.id)}
-                        className="flex-1 px-3 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600 border border-red-500/40 text-red-300 hover:text-white text-xs font-semibold transition cursor-pointer"
-                      >
-                        Accuse as Red John
+                        {isRevealedRedJohn
+                          ? '✓ Confirmed Red John'
+                          : isWronglyAccused
+                          ? '✕ Not Red John (Wrong Verdict)'
+                          : 'Accuse as Red John'}
                       </button>
 
                       {suspect.actorPersonId && (
                         <Link
                           to={`/characters/${suspect.actorPersonId}`}
                           title="Inspect Actor Dossier"
-                          className="p-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-zinc-300 hover:text-white"
+                          className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-zinc-300 hover:text-white"
                         >
                           <ArrowRight className="h-4 w-4" />
                         </Link>
@@ -591,7 +511,7 @@ export default function InvestigationPage() {
                 <span>{currentQuestion.typeLabel}</span>
               </span>
               <span className="text-xs font-mono-code text-zinc-400">
-                Mentalist Observation Round
+                Observation Round #{questionNumber}
               </span>
             </div>
 
@@ -599,20 +519,30 @@ export default function InvestigationPage() {
               {currentQuestion.prompt}
             </h3>
 
-            {/* Evidence Box (Image + Live Clue Text) */}
+            {/* Evidence Box (Centered object-contain photo with blurred backdrop so portraits & stills never crop) */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center rounded-2xl bg-black/70 border border-white/10 p-4">
               {currentQuestion.image && (
-                <div className="md:col-span-4">
-                  <img
-                    src={currentQuestion.image}
-                    alt="Case Evidence"
-                    className="w-full h-44 object-cover object-top rounded-xl border border-white/15"
-                  />
+                <div className="md:col-span-5">
+                  <div className="relative h-52 w-full rounded-xl bg-[#09090e] border border-white/15 overflow-hidden flex items-center justify-center">
+                    <img
+                      src={currentQuestion.image}
+                      alt=""
+                      aria-hidden="true"
+                      referrerPolicy="no-referrer"
+                      className="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 scale-110 pointer-events-none"
+                    />
+                    <img
+                      src={currentQuestion.image}
+                      alt="Case Evidence"
+                      referrerPolicy="no-referrer"
+                      className="relative z-10 h-full w-auto max-w-full object-contain"
+                    />
+                  </div>
                 </div>
               )}
               <div
                 className={
-                  currentQuestion.image ? 'md:col-span-8 space-y-2' : 'md:col-span-12 space-y-2'
+                  currentQuestion.image ? 'md:col-span-7 space-y-2' : 'md:col-span-12 space-y-2'
                 }
               >
                 <span className="text-[11px] font-mono-code uppercase text-red-400 block">
@@ -708,23 +638,23 @@ export default function InvestigationPage() {
         </section>
       )}
 
-      {/* Centered Pop-Up Verdict Modal when the user accuses a suspect (No scrolling required!) */}
+      {/* Centered Pop-Up Verdict Modal rendered via document.body Portal for true viewport centering */}
       {accusedSuspectId &&
         (() => {
           const target = suspects.find((s) => s.id === accusedSuspectId);
           if (!target) return null;
           const isCorrect = target.isTrueRedJohn;
 
-          return (
+          return createPortal(
             <div
               role="dialog"
               aria-modal="true"
               onClick={() => setAccusedSuspectId(null)}
-              className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-slide"
+              className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-slide"
             >
               <div
                 onClick={(e) => e.stopPropagation()}
-                className={`relative max-w-lg w-full rounded-3xl border-2 p-7 sm:p-8 text-center shadow-[0_0_80px_rgba(0,0,0,0.95)] ${
+                className={`relative max-w-lg w-full max-h-[90vh] overflow-y-auto rounded-3xl border-2 p-7 sm:p-8 text-center shadow-[0_0_80px_rgba(0,0,0,0.95)] ${
                   isCorrect
                     ? 'border-emerald-500 bg-gradient-to-b from-zinc-950 via-[#0b1410] to-emerald-950/50 shadow-[0_0_80px_rgba(16,185,129,0.35)]'
                     : 'border-red-600 bg-gradient-to-b from-zinc-950 via-[#140b0d] to-red-950/50 shadow-[0_0_80px_rgba(220,38,38,0.4)]'
@@ -767,14 +697,21 @@ export default function InvestigationPage() {
                     : 'WRONG SUSPECT • NOT RED JOHN'}
                 </span>
 
-                {/* Suspect Portrait inside Verdict Modal */}
+                {/* Suspect Portrait inside Verdict Modal (Centered object-contain) */}
                 {target.characterImage && (
-                  <div className="mx-auto my-3 w-28 h-36 rounded-2xl overflow-hidden border-2 border-white/20 bg-black shadow-xl">
+                  <div className="relative mx-auto my-3 w-32 h-40 rounded-2xl overflow-hidden border-2 border-white/20 bg-[#09090e] shadow-xl flex items-center justify-center">
+                    <img
+                      src={target.characterImage}
+                      alt=""
+                      aria-hidden="true"
+                      referrerPolicy="no-referrer"
+                      className="absolute inset-0 w-full h-full object-cover blur-lg opacity-35 scale-110 pointer-events-none"
+                    />
                     <img
                       src={target.characterImage}
                       alt={target.name}
                       referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover object-top"
+                      className="relative z-10 h-full w-auto max-w-full object-contain"
                     />
                   </div>
                 )}
@@ -808,7 +745,8 @@ export default function InvestigationPage() {
                   </button>
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           );
         })()}
     </div>

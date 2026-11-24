@@ -15,6 +15,7 @@ import {
   fetchShowEpisodes,
   getEpisodeColorMotif,
   getMemoryPalaceState,
+  isRedJohnShowdownEpisode,
   searchAndRankEpisodes,
   toggleMemoryPalacePinned,
   toggleMemoryPalaceSolved,
@@ -81,11 +82,19 @@ export default function EpisodesPage() {
   };
 
   /**
-   * Toggles an episode's pinned bookmark inside Patrick Jane's Memory Palace.
+   * Toggles an episode's Favorite status for the active session.
    */
   const handleTogglePinned = (episodeId) => {
+    const wasFavorited = memoryPalace.pinnedIds.includes(Number(episodeId));
     const updated = toggleMemoryPalacePinned(episodeId);
     setMemoryPalace({ ...updated });
+
+    if (!wasFavorited) {
+      const targetEp = episodes.find((ep) => Number(ep.id) === Number(episodeId));
+      if (isRedJohnShowdownEpisode(targetEp)) {
+        window.dispatchEvent(new CustomEvent('mentalist:rj-smiley-flash'));
+      }
+    }
   };
 
   /**
@@ -208,8 +217,8 @@ export default function EpisodesPage() {
               Episode Case Files
             </h1>
             <p className="text-base text-zinc-300 mt-1 max-w-[65ch]">
-              Browse, search, and pin your favorite investigations into Patrick Jane&apos;s Memory
-              Palace or track which cases you have solved.
+              Browse, search, and save your favorite episodes or track which cases you have
+              watched across all seven seasons.
             </p>
           </div>
 
@@ -420,7 +429,7 @@ export default function EpisodesPage() {
             No episodes match your current filter criteria
           </h2>
           <p className="text-base text-zinc-400 mb-4">
-            Try clearing your search keyword or switching the Memory Palace / Season filter.
+            Try clearing your search keyword or switching the Watched / Favorites / Season filter.
           </p>
           <button
             type="button"
