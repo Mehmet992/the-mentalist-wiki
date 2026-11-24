@@ -8,8 +8,6 @@ import {
   Clock,
   Filter,
   Flame,
-  LayoutGrid,
-  List,
   Loader2,
   Search,
   Shield,
@@ -27,10 +25,9 @@ import ApiErrorState from '../components/common/ApiErrorState';
 
 /**
  * Interactive Two-Act Story Timeline Page (/timeline).
- * Displays episodes on a Crime-Scene Evidence Table / Detective Corkboard where each
- * episode Polaroid card is pinned with a crimson push-pin and linked to the next
- * episode by glowing SVG red strings. Visitors can toggle between the Evidence Table
- * view and the Classic Vertical Timeline view.
+ * Uses a clean F-Pattern vertical chronological track with Progressive Disclosure:
+ * - Act I (S01E01 "Pilot" -> S06E08 "Red John"): Traces Patrick Jane's CBI cases and the hunt for Red John.
+ * - Act II (S06E09 "My Blue Heaven" -> S07E13 "White Orchids"): Traces the post-Red John transition to the FBI.
  */
 export default function TimelinePage() {
   const [episodes, setEpisodes] = useState([]);
@@ -39,7 +36,6 @@ export default function TimelinePage() {
   const [expandedNodes, setExpandedNodes] = useState({});
   const [loadingRecapId, setLoadingRecapId] = useState(null);
 
-  const [boardLayout, setBoardLayout] = useState('EVIDENCE_BOARD'); // 'EVIDENCE_BOARD' or 'VERTICAL_LIST'
   const [selectedAct, setSelectedAct] = useState('ALL'); // 'ALL', 'RED_JOHN_ACT', 'FBI_ACT'
   const [onlyMilestones, setOnlyMilestones] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState('ALL');
@@ -49,7 +45,7 @@ export default function TimelinePage() {
   const [error, setError] = useState(null);
 
   /**
-   * Loads all 151 episodes from TVmaze and fetches Red John context.
+   * Loads all 151 episodes and fetches Red John context.
    */
   const loadTimelineData = useCallback(async () => {
     setLoading(true);
@@ -145,7 +141,7 @@ export default function TimelinePage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <LoadingState
-          message="Pinning chronological case files onto the Evidence Board..."
+          message="Constructing the Two-Act Chronological Timeline..."
           endpointHint="api.tvmaze.com/shows/116/episodes"
         />
       </div>
@@ -161,233 +157,9 @@ export default function TimelinePage() {
   }
 
   /**
-   * Renders an Evidence Board Grid where Episode Polaroid cards are pinned to a
-   * crime-scene table and linked to the next episode with glowing SVG red strings.
+   * Renders a compact F-Pattern timeline card along the vertical chronological track.
    */
-  const renderEvidenceBoard = (episodeList) => {
-    return (
-      <div className="relative rounded-3xl border border-red-900/40 bg-[#0d0c12]/90 p-5 sm:p-8 overflow-hidden shadow-[inset_0_0_80px_rgba(0,0,0,0.85)] bg-[radial-gradient(#ef44441f_1px,transparent_1px)] [background-size:22px_22px]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-14 relative z-10">
-          {episodeList.map((ep, index) => {
-            const expandedData = expandedNodes[ep.id];
-            const isExpanded = Boolean(expandedData);
-            const wikiArticle = expandedData?.wiki;
-            const guestCast = expandedData?.details?._embedded?.guestcast || [];
-            const isEven = index % 2 === 0;
-            const hasNext = index < episodeList.length - 1;
-
-            const isCornerstone =
-              (ep.season === 1 && ep.number === 1) ||
-              (ep.season === 6 && ep.number === 8) ||
-              (ep.season === 6 && ep.number === 9) ||
-              (ep.season === 7 && ep.number === 13);
-
-            // Slight organic Polaroid tilt on the evidence board
-            const tiltClass = isEven ? 'md:-rotate-[0.7deg]' : 'md:rotate-[0.7deg] md:mt-8';
-
-            return (
-              <div key={ep.id} className={`relative ${tiltClass} transition-transform hover:rotate-0`}>
-                {/* SVG Red String linking this card's push-pin to the next card in the sequence */}
-                {hasNext && (
-                  <>
-                    {/* Desktop Diagonal / Zig-Zag Red String between Left and Right Columns */}
-                    <svg
-                      aria-hidden="true"
-                      className={`hidden md:block pointer-events-none absolute top-3 z-0 overflow-visible ${
-                        isEven ? 'left-1/2 w-[112%] h-24' : 'right-1/2 w-[112%] h-44'
-                      }`}
-                      viewBox="0 0 400 120"
-                      preserveAspectRatio="none"
-                    >
-                      {isEven ? (
-                        <path
-                          d="M 0,4 Q 200,55 400,28"
-                          fill="none"
-                          stroke="#dc2626"
-                          strokeWidth="2.8"
-                          strokeDasharray="6 3"
-                          className="drop-shadow-[0_0_8px_rgba(239,68,68,0.85)]"
-                        />
-                      ) : (
-                        <path
-                          d="M 400,4 Q 200,95 0,115"
-                          fill="none"
-                          stroke="#dc2626"
-                          strokeWidth="2.8"
-                          strokeDasharray="6 3"
-                          className="drop-shadow-[0_0_8px_rgba(239,68,68,0.85)]"
-                        />
-                      )}
-                    </svg>
-
-                    {/* Mobile Vertical Red String connecting down to next card */}
-                    <div
-                      aria-hidden="true"
-                      className="md:hidden pointer-events-none absolute left-1/2 -bottom-14 h-14 w-0.5 bg-gradient-to-b from-red-500 to-red-700 shadow-[0_0_10px_rgba(239,68,68,0.9)] z-0"
-                    />
-                  </>
-                )}
-
-                {/* 3D Red Push-Pin at the top center of the Evidence Card */}
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center">
-                  <div
-                    className={`h-7 w-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shadow-[0_4px_14px_rgba(220,38,38,0.9)] ${
-                      isCornerstone
-                        ? 'bg-red-500 border-white text-white scale-110'
-                        : 'bg-gradient-to-br from-red-500 to-red-800 border-red-300 text-white'
-                    }`}
-                  >
-                    #{index + 1}
-                  </div>
-                  <div className="h-2 w-0.5 bg-zinc-400" />
-                </div>
-
-                {/* Polaroid Evidence Dossier Card */}
-                <article
-                  className={`relative z-10 rounded-2xl border p-4 sm:p-5 bg-[#13131b]/95 shadow-[0_14px_35px_rgba(0,0,0,0.8)] transition-all text-left ${
-                    isCornerstone
-                      ? 'border-red-500/80 ring-1 ring-red-500/40'
-                      : 'border-white/15 hover:border-red-500/60'
-                  }`}
-                >
-                  {/* Polaroid Photo Frame */}
-                  <Link
-                    to={`/episodes/${ep.id}`}
-                    className="block relative h-44 w-full rounded-xl overflow-hidden bg-black border border-white/10 mb-3.5 group"
-                  >
-                    {ep.image?.original || ep.image?.medium ? (
-                      <img
-                        src={ep.image.original || ep.image.medium}
-                        alt={ep.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-zinc-500">
-                        No Case Photo
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
-                    <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/15 text-xs font-mono-code font-bold text-white">
-                      S{String(ep.season).padStart(2, '0')}E{String(ep.number).padStart(2, '0')}
-                    </span>
-
-                    {ep.rating?.average && (
-                      <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md text-xs font-bold text-amber-400">
-                        <Star className="h-3 w-3 fill-amber-400" />
-                        <span>{ep.rating.average}</span>
-                      </span>
-                    )}
-
-                    <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between gap-2">
-                      <span className="px-2 py-0.5 rounded bg-red-600/90 text-[11px] font-semibold text-white truncate">
-                        {ep.analysis.milestoneTag}
-                      </span>
-                      <span className="text-xs text-zinc-200 inline-flex items-center gap-1 shrink-0">
-                        <Calendar className="h-3 w-3 text-red-400" />
-                        {ep.airdate}
-                      </span>
-                    </div>
-                  </Link>
-
-                  {/* Case Headline & 2-Line Progressive Disclosure Summary */}
-                  <h3 className="text-lg sm:text-xl font-bold text-[#f5f5f5] font-serif-title">
-                    Season {ep.season}, Episode {ep.number}: {ep.name}
-                  </h3>
-
-                  <p
-                    className={`text-base text-zinc-200 leading-[1.5] mt-1.5 max-w-[65ch] ${
-                      isExpanded ? '' : 'line-clamp-2'
-                    }`}
-                  >
-                    {ep.analysis.cleanSummary}
-                  </p>
-
-                  {/* Action Row */}
-                  <div className="mt-3.5 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleNodeExpansion(ep)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-red-400 transition cursor-pointer"
-                    >
-                      {loadingRecapId === ep.id ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 text-red-500 animate-spin" />
-                          <span>Opening Dossier...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>
-                            {isExpanded ? 'Hide Evidence Notes' : 'Read Case Notes & Guests'}
-                          </span>
-                          {isExpanded ? (
-                            <ChevronUp className="h-3.5 w-3.5 text-red-400" />
-                          ) : (
-                            <ChevronDown className="h-3.5 w-3.5 text-red-400" />
-                          )}
-                        </>
-                      )}
-                    </button>
-
-                    <Link
-                      to={`/episodes/${ep.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300 transition"
-                    >
-                      <span>Open Case File</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-
-                  {/* Expanded Evidence Drawer */}
-                  {isExpanded && (
-                    <div className="mt-3.5 pt-3.5 border-t border-white/10 space-y-3 animate-fade-slide">
-                      {wikiArticle && (wikiArticle.recap || wikiArticle.overview) && (
-                        <div className="rounded-xl bg-black/70 border border-white/10 p-3.5">
-                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-red-400 uppercase mb-1">
-                            <span>Detailed Episode Story</span>
-                            {wikiArticle.infobox?.Writer && (
-                              <span className="text-zinc-400">
-                                Writer: {wikiArticle.infobox.Writer}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-zinc-200 leading-[1.5] line-clamp-5">
-                            {wikiArticle.recap || wikiArticle.overview}
-                          </p>
-                        </div>
-                      )}
-
-                      {guestCast.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-xs font-semibold text-zinc-400 mr-1">
-                            Guests:
-                          </span>
-                          {guestCast.slice(0, 5).map((g, idx) => (
-                            <span
-                              key={`${g.person?.id}-${idx}`}
-                              className="px-2 py-0.5 rounded bg-zinc-900 border border-white/10 text-xs text-zinc-200"
-                            >
-                              {g.character?.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </article>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  /**
-   * Renders the classic F-Pattern vertical timeline track when user toggles List View.
-   */
-  const renderVerticalTimelineNode = (ep, index) => {
+  const renderTimelineNode = (ep, index) => {
     const expandedData = expandedNodes[ep.id];
     const isExpanded = Boolean(expandedData);
     const wikiArticle = expandedData?.wiki;
@@ -400,19 +172,30 @@ export default function TimelinePage() {
 
     return (
       <div key={ep.id} className="relative pl-8 sm:pl-11 py-3">
-        <div className="absolute left-3 sm:left-3.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-red-600 via-red-800 to-zinc-900" />
+        {/* Timeline Vertical Connector Line */}
+        <div className="absolute left-3 sm:left-3.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-red-600/70 via-zinc-800 to-zinc-900" />
+
+        {/* Timeline Node Circle Indicator */}
         <div
           className={`absolute left-0.5 sm:left-1 top-6 h-5 w-5 rounded-full border flex items-center justify-center text-[9px] font-mono-code font-bold ${
             isCornerstone
               ? 'bg-red-600 border-white text-white shadow-[0_0_15px_rgba(239,68,68,0.9)] scale-110'
-              : 'bg-red-950 border-red-500 text-red-200'
+              : ep.analysis.mentionsRedJohn
+              ? 'bg-red-950 border-red-500 text-red-200'
+              : 'bg-zinc-900 border-white/20 text-zinc-400'
           }`}
         >
           {index + 1}
         </div>
 
-        <div className="glass-card-interactive rounded-2xl p-4 sm:p-5 text-left">
+        {/* Compact F-Pattern Horizontal Card */}
+        <div
+          className={`glass-card-interactive rounded-2xl p-4 sm:p-5 text-left ${
+            isCornerstone ? 'border-red-500/70' : ''
+          }`}
+        >
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            {/* F-Pattern Left Visual Anchor: Compact Thumbnail */}
             <Link
               to={`/episodes/${ep.id}`}
               className="relative w-full sm:w-44 h-28 rounded-xl overflow-hidden bg-black border border-white/10 shrink-0 group"
@@ -424,22 +207,49 @@ export default function TimelinePage() {
                   loading="lazy"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-              ) : null}
-              <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 text-xs font-mono-code font-bold text-white">
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-xs text-zinc-600">
+                  No Image
+                </div>
+              )}
+              <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[11px] font-mono-code font-bold text-white border border-white/15">
                 S{String(ep.season).padStart(2, '0')}E{String(ep.number).padStart(2, '0')}
               </span>
             </Link>
 
+            {/* F-Pattern Right Content: Scannable Header + 2-Line Bite-Sized Hook */}
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-                <span className="text-xs font-semibold text-red-400">
-                  {ep.analysis.milestoneTag}
-                </span>
-                <span className="text-xs text-zinc-400">{ep.airdate}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-red-400">
+                    {ep.analysis.milestoneTag}
+                  </span>
+                  {ep.analysis.mentionsRedJohn && (
+                    <span className="px-2 py-0.5 rounded bg-red-600/20 border border-red-500/40 text-[10px] font-semibold text-red-300 uppercase">
+                      Red John Arc
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 text-xs font-mono-code text-zinc-400">
+                  <span className="inline-flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-red-400" />
+                    <span>{ep.airdate}</span>
+                  </span>
+                  {ep.rating?.average && (
+                    <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
+                      <Star className="h-3 w-3 fill-amber-400" />
+                      <span>{ep.rating.average}</span>
+                    </span>
+                  )}
+                </div>
               </div>
+
               <h3 className="text-lg sm:text-xl font-bold text-[#f5f5f5] font-serif-title">
                 Season {ep.season} - Episode {ep.number} : {ep.name}
               </h3>
+
+              {/* Progressive Disclosure: Strict 2-line clamp when collapsed */}
               <p
                 className={`text-base text-zinc-200 leading-[1.5] mt-1 max-w-[65ch] ${
                   isExpanded ? '' : 'line-clamp-2'
@@ -448,18 +258,35 @@ export default function TimelinePage() {
                 {ep.analysis.cleanSummary}
               </p>
 
+              {/* Compact Bottom Action Row */}
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => handleToggleNodeExpansion(ep)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-red-400 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-red-400 transition cursor-pointer"
                 >
-                  <span>{isExpanded ? 'Hide Details' : 'Expand Story & Guests'}</span>
-                  {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  {loadingRecapId === ep.id ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 text-red-500 animate-spin" />
+                      <span>Loading Story Recap...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>
+                        {isExpanded ? 'Hide Extended Story & Guests' : 'Expand Story & Guests'}
+                      </span>
+                      {isExpanded ? (
+                        <ChevronUp className="h-3.5 w-3.5 text-red-400" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5 text-red-400" />
+                      )}
+                    </>
+                  )}
                 </button>
+
                 <Link
                   to={`/episodes/${ep.id}`}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300 transition"
                 >
                   <span>Case File</span>
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -468,21 +295,38 @@ export default function TimelinePage() {
             </div>
           </div>
 
+          {/* Progressive Disclosure Drawer */}
           {isExpanded && (
             <div className="mt-4 pt-4 border-t border-white/10 space-y-3 animate-fade-slide">
               {wikiArticle && (wikiArticle.recap || wikiArticle.overview) && (
-                <p className="text-sm text-zinc-300 leading-[1.5]">
-                  {wikiArticle.recap || wikiArticle.overview}
-                </p>
+                <div className="rounded-xl bg-black/70 border border-white/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-red-400 uppercase mb-1.5">
+                    <span>Detailed Episode Story</span>
+                    {wikiArticle.infobox?.Writer && (
+                      <span className="text-zinc-400">
+                        Writer: {wikiArticle.infobox.Writer} | Director:{' '}
+                        {wikiArticle.infobox.Director || 'N/A'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-base text-zinc-200 leading-[1.5] max-w-[65ch] line-clamp-5">
+                    {wikiArticle.recap || wikiArticle.overview}
+                  </p>
+                </div>
               )}
+
               {guestCast.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-semibold text-zinc-400 mr-1">
+                    Episode Guest Cast:
+                  </span>
                   {guestCast.slice(0, 6).map((g, idx) => (
                     <span
                       key={`${g.person?.id}-${idx}`}
-                      className="px-2.5 py-0.5 rounded bg-zinc-900 text-xs text-zinc-300"
+                      className="px-2.5 py-0.5 rounded-md bg-zinc-900 border border-white/10 text-xs text-zinc-300"
                     >
-                      {g.character?.name}
+                      <strong className="text-white">{g.character?.name}</strong>{' '}
+                      <span className="text-zinc-400">({g.person?.name})</span>
                     </span>
                   ))}
                 </div>
@@ -495,71 +339,41 @@ export default function TimelinePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Compact Timeline Header */}
       <div className="glass-panel rounded-3xl p-6 sm:p-8 mb-8 text-left">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/15 border border-red-500/30 text-red-400 text-xs font-semibold uppercase mb-2">
               <Clock className="h-3.5 w-3.5" />
-              <span>CBI Evidence Table &amp; Red String Case Timeline</span>
+              <span>Chronological Series Roadmap • 2 Acts</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-[#f5f5f5] font-serif-title">
-              The Mentalist Evidence Board Timeline
+              The Mentalist Story Timeline
             </h1>
             <p className="text-base text-zinc-300 mt-1 max-w-[65ch]">
-              Follow the crimson thread connecting Patrick Jane&apos;s investigation from{' '}
-              <strong className="text-white">S01E01 (&ldquo;Pilot&rdquo;)</strong> to{' '}
-              <strong className="text-red-400">S06E08 (&ldquo;Red John&rdquo;)</strong>, and into{' '}
-              <strong className="text-white">Act II: The FBI Era (S06E09–S07E13)</strong>.
+              Trace Patrick Jane&apos;s journey from{' '}
+              <strong className="text-white">S01E01 (&ldquo;Pilot&rdquo;)</strong> to the Red John
+              showdown in <strong className="text-red-400">S06E08 (&ldquo;Red John&rdquo;)</strong>,
+              and into <strong className="text-white">Act II: The FBI Era (S06E09–S07E13)</strong>.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-center shrink-0">
-            {/* Switch between Red String Evidence Table and Vertical List */}
-            <div className="inline-flex rounded-xl bg-[#0d0d13] p-1 border border-white/10">
-              <button
-                type="button"
-                onClick={() => setBoardLayout('EVIDENCE_BOARD')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                  boardLayout === 'EVIDENCE_BOARD'
-                    ? 'bg-red-600 text-white shadow'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                <span>Evidence Board</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setBoardLayout('VERTICAL_LIST')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                  boardLayout === 'VERTICAL_LIST'
-                    ? 'bg-red-600 text-white shadow'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <List className="h-3.5 w-3.5" />
-                <span>List View</span>
-              </button>
-            </div>
-
-            {redJohnLore?.overview && (
-              <button
-                type="button"
-                onClick={() => setShowRedJohnDossier((prev) => !prev)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-semibold text-red-300 transition cursor-pointer"
-              >
-                <ShieldAlert className="h-4 w-4 text-red-500" />
-                <span>{showRedJohnDossier ? 'Hide Red John File' : 'Who Is Red John?'}</span>
-                {showRedJohnDossier ? (
-                  <ChevronUp className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                )}
-              </button>
-            )}
-          </div>
+          {redJohnLore?.overview && (
+            <button
+              type="button"
+              onClick={() => setShowRedJohnDossier((prev) => !prev)}
+              className="self-start md:self-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-semibold text-red-300 transition cursor-pointer shrink-0"
+            >
+              <ShieldAlert className="h-4 w-4 text-red-500" />
+              <span>{showRedJohnDossier ? 'Hide Red John Dossier' : 'Who Is Red John?'}</span>
+              {showRedJohnDossier ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
         </div>
 
         {/* Progressive Disclosure: Red John Background Dossier */}
@@ -672,22 +486,22 @@ export default function TimelinePage() {
       {/* ACT I: THE RED JOHN HUNT (S01E01 -> S06E08) */}
       {(selectedAct === 'ALL' || selectedAct === 'RED_JOHN_ACT') && (
         <section className="mb-12">
-          <div className="glass-panel rounded-2xl p-4 sm:p-5 mb-5 flex items-center justify-between gap-4 text-left">
+          <div className="glass-panel rounded-2xl p-4 sm:p-5 mb-4 flex items-center justify-between gap-4 text-left">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
                 <Flame className="h-5 w-5" />
               </div>
               <div>
                 <span className="text-xs font-semibold uppercase text-red-400">
-                  ACT I • CBI EVIDENCE BOARD
+                  ACT I • CBI &amp; THE RED JOHN PURSUIT
                 </span>
                 <h2 className="text-xl font-bold text-[#f5f5f5] font-serif-title">
-                  The Red John Pursuit: Season 1, Episode 1 → Season 6, Episode 8
+                  Season 1, Episode 1 (&ldquo;Pilot&rdquo;) → Season 6, Episode 8 (&ldquo;Red John&rdquo;)
                 </h2>
               </div>
             </div>
             <span className="px-3 py-1 rounded-lg bg-zinc-900 border border-white/10 text-xs font-semibold text-zinc-300 shrink-0">
-              {actOneEpisodes.length} Pinned Cases
+              {actOneEpisodes.length} Cases
             </span>
           </div>
 
@@ -695,17 +509,15 @@ export default function TimelinePage() {
             <div className="rounded-2xl border border-white/10 bg-zinc-950/50 p-8 text-center text-base text-zinc-400">
               No Act I episodes match your current filter.
             </div>
-          ) : boardLayout === 'EVIDENCE_BOARD' ? (
-            renderEvidenceBoard(actOneEpisodes)
           ) : (
-            <div>{actOneEpisodes.map((ep, idx) => renderVerticalTimelineNode(ep, idx))}</div>
+            <div>{actOneEpisodes.map((ep, idx) => renderTimelineNode(ep, idx))}</div>
           )}
         </section>
       )}
 
       {/* ACT TRANSITION DIVIDER (S06E08 -> S06E09) */}
       {selectedAct === 'ALL' && (
-        <div className="my-12 rounded-2xl border border-red-500/50 bg-gradient-to-r from-[#0b0b10] via-red-950/50 to-[#0b0b10] p-6 text-center">
+        <div className="my-10 rounded-2xl border border-red-500/50 bg-gradient-to-r from-[#0b0b10] via-red-950/50 to-[#0b0b10] p-6 text-center">
           <span className="px-3 py-1 rounded-full bg-red-600 text-white text-xs font-bold uppercase">
             Turning Point • After Season 6, Episode 8 (&ldquo;Red John&rdquo;)
           </span>
@@ -722,22 +534,22 @@ export default function TimelinePage() {
       {/* ACT II: THE FBI ERA (S06E09 -> S07E13) */}
       {(selectedAct === 'ALL' || selectedAct === 'FBI_ACT') && (
         <section>
-          <div className="glass-panel rounded-2xl p-4 sm:p-5 mb-5 flex items-center justify-between gap-4 text-left">
+          <div className="glass-panel rounded-2xl p-4 sm:p-5 mb-4 flex items-center justify-between gap-4 text-left">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
                 <Shield className="h-5 w-5" />
               </div>
               <div>
                 <span className="text-xs font-semibold uppercase text-red-400">
-                  ACT II • FBI CASE BOARD (AUSTIN, TEXAS)
+                  ACT II • FEDERAL BUREAU OF INVESTIGATION
                 </span>
                 <h2 className="text-xl font-bold text-[#f5f5f5] font-serif-title">
-                  The FBI Era: Season 6, Episode 9 → Season 7, Episode 13
+                  Season 6, Episode 9 (&ldquo;My Blue Heaven&rdquo;) → Season 7, Episode 13 (&ldquo;White Orchids&rdquo;)
                 </h2>
               </div>
             </div>
             <span className="px-3 py-1 rounded-lg bg-zinc-900 border border-white/10 text-xs font-semibold text-zinc-300 shrink-0">
-              {actTwoEpisodes.length} Pinned Cases
+              {actTwoEpisodes.length} Cases
             </span>
           </div>
 
@@ -745,10 +557,8 @@ export default function TimelinePage() {
             <div className="rounded-2xl border border-white/10 bg-zinc-950/50 p-8 text-center text-base text-zinc-400">
               No Act II episodes match your current filter.
             </div>
-          ) : boardLayout === 'EVIDENCE_BOARD' ? (
-            renderEvidenceBoard(actTwoEpisodes)
           ) : (
-            <div>{actTwoEpisodes.map((ep, idx) => renderVerticalTimelineNode(ep, idx))}</div>
+            <div>{actTwoEpisodes.map((ep, idx) => renderTimelineNode(ep, idx))}</div>
           )}
         </section>
       )}

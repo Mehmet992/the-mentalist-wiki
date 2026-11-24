@@ -11,6 +11,7 @@ const TVMAZE_BASE_URL = 'https://api.tvmaze.com';
 const MENTALIST_SHOW_ID = 116;
 const FANDOM_API_URL = 'https://thementalist.fandom.com/api.php';
 const WIKIPEDIA_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/summary';
+const WIKIQUOTE_API_URL = 'https://en.wikiquote.org/w/api.php';
 
 // Cache configuration constants
 const STORAGE_PREFIX = 'mentalist_api_cache_v1:';
@@ -835,6 +836,88 @@ export function searchAndRankEpisodes(episodes = [], rawQuery = '') {
   });
 
   return scored.map((item) => item.episode);
+}
+
+/**
+ * Fetches live episode dialogue, humorous exchanges, and fan-favorite quotes for
+ * a given season (1-6) of The Mentalist directly from the public Wikiquote MediaWiki API
+ * (https://en.wikiquote.org/w/api.php) with zero hardcoded quotes.
+ *
+ * @param {number} seasonNumber - Season number (1 to 6)
+ * @returns {Promise<Array>} Array of parsed scene quote objects linked to episode numbers
+ */
+export async function fetchWikiquoteSeasonScenes(seasonNumber = 1) {
+  const pageTitle = `The_Mentalist_(season_${seasonNumber})`;
+  const url = `${WIKIQUOTE_API_URL}?action=query&prop=revisions&titles=${encodeURIComponent(
+    pageTitle
+  )}&rvprop=content&rvslots=main&format=json&origin=*`;
+
+  const data = await fetchJsonWithCache(url);
+  const pages = data?.query?.pages || {};
+  const firstPage = Object.values(pages)[0];
+  const wikitext = firstPage?.revisions?.[0]?.slots?.main?.['*'];
+  if (!wikitext) return [];
+
+  const scenes = [];
+  // Split by episode sections: === ''Episode Title'' [1.01] ===
+  const episodeRegex = /===\s*''([^']+)''\s*\[(\d+)\.(\d+)\]\s*===/g;
+  const matches = [...wikitext.matchAll(episodeRegex)];
+
+  for (let i = 0; i < matches.length; i += 1) {
+    const epTitle = cleanWikitextSegment(matches[i][1]);
+    const sNum = Number(matches[i][2]);
+    const epNum = Number(matches[i][3]);
+    const startIdx = matches[i].index + matches[i][0].length;
+    const endIdx = i + 1 < matches.length ? matches[i + 1].index : wikitext.length;
+    const sectionBody = wikitext.slice(startIdx, endIdx);
+
+    // Each scene exchange is separated by <hr.../>
+    const rawBlocks = sectionBody.split(/<hr[^>]*\/?>/i);
+    for (let bIndex = 0; bIndex < rawBlocks.length; bIndex += 1) {
+      const rawBlock = rawBlocks[bIndex];
+      const rawLines = rawBlock
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.startsWith(':'));
+
+      if (rawLines.length === 0) continue;
+
+      const dialogueLines = [];
+      let contextNote = '';
+
+      for (const line of rawLines) {
+        const cleanedLine = cleanWikitextSegment(line.replace(/^:+/, '').trim());
+        if (!cleanedLine) continue;
+        if (cleanedLine.startsWith('[') && cleanedLine.endsWith(']')) {
+          contextNote = cleanedLine.slice(1, -1).trim();
+        } else {
+          dialogueLines.push(cleanedLine);
+        }
+      }
+
+      if (dialogueLines.length >= 1) {
+        const topLine = dialogueLines[0];
+        const bottomLine =
+          dialogueLines.length > 1
+            ? dialogueLines[dialogueLines.length - 1]
+            : contextNote || epTitle;
+
+        scenes.push({
+          id: `s${sNum}e${epNum}-scene-${bIndex}`,
+          season: sNum,
+          episodeNumber: epNum,
+          episodeTitle: epTitle,
+          contextNote,
+          topLine,
+          bottomLine,
+          fullDialogue: dialogueLines,
+          sourceUrl: `https://en.wikiquote.org/wiki/${encodeURIComponent(pageTitle)}`,
+        });
+      }
+    }
+  }
+
+  return scenes;
 }
 
 const RECENT_VISITS_KEY = 'mentalist_recent_visits_v1';

@@ -2,9 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  Bookmark,
   Calendar,
   CheckCircle2,
+  Heart,
   Star,
 } from 'lucide-react';
 import {
@@ -14,14 +14,14 @@ import {
 
 /**
  * Reusable card component displaying an episode's summary, season/episode badge,
- * airdate, rating, and interactive Memory Palace controls (Pin Case & Mark Solved).
+ * airdate, rating, and clear "Watched" & "Favorite" user controls.
  *
  * @param {Object} props
  * @param {Object} props.episode - Episode object from TVmaze (/shows/116/episodes)
- * @param {boolean} [props.isSolved] - Whether this episode is marked as solved in Memory Palace
- * @param {boolean} [props.isPinned] - Whether this episode is pinned in Memory Palace
- * @param {Function} [props.onToggleSolved] - Callback to toggle solved status
- * @param {Function} [props.onTogglePinned] - Callback to toggle pinned status
+ * @param {boolean} [props.isSolved] - Whether this episode is marked as Watched
+ * @param {boolean} [props.isPinned] - Whether this episode is marked as a Favorite
+ * @param {Function} [props.onToggleSolved] - Callback to toggle Watched status
+ * @param {Function} [props.onTogglePinned] - Callback to toggle Favorite status
  */
 export default function EpisodeCard({
   episode,
@@ -38,7 +38,7 @@ export default function EpisodeCard({
     <article
       className={`glass-card-interactive group rounded-2xl overflow-hidden flex flex-col justify-between text-left ${
         isPinned
-          ? 'border-amber-400/60'
+          ? 'border-red-400/70'
           : isSolved
           ? 'border-emerald-500/50'
           : ''
@@ -122,22 +122,22 @@ export default function EpisodeCard({
         </div>
       </div>
 
-      {/* Bottom Action Bar: Memory Palace Controls + Detail Link */}
+      {/* Bottom Action Bar: Clear Favorite & Watched Buttons + Detail Link */}
       <div className="px-4 sm:px-5 pb-4 pt-2.5 border-t border-white/10 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           {onTogglePinned && (
             <button
               type="button"
               onClick={() => onTogglePinned(episode.id)}
-              title={isPinned ? 'Remove from Memory Palace' : 'Pin to Patrick Jane’s Memory Palace'}
+              title={isPinned ? 'Remove from Favorites' : 'Save to Favorites'}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
                 isPinned
-                  ? 'bg-amber-500/20 border-amber-400 text-amber-300'
+                  ? 'bg-red-600/20 border-red-400 text-red-300'
                   : 'bg-zinc-900/90 hover:bg-zinc-800 border-white/10 text-zinc-300'
               }`}
             >
-              <Bookmark className={`h-3.5 w-3.5 ${isPinned ? 'fill-amber-300' : ''}`} />
-              <span>{isPinned ? 'Pinned' : 'Pin'}</span>
+              <Heart className={`h-3.5 w-3.5 ${isPinned ? 'fill-red-400 text-red-400' : ''}`} />
+              <span>{isPinned ? 'Favorited' : 'Favorite'}</span>
             </button>
           )}
 
@@ -145,7 +145,7 @@ export default function EpisodeCard({
             <button
               type="button"
               onClick={() => onToggleSolved(episode.id)}
-              title={isSolved ? 'Mark as Unsolved' : 'Mark Case Solved / Watched'}
+              title={isSolved ? 'Unmark as Watched' : 'Mark Episode as Watched'}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
                 isSolved
                   ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
@@ -153,7 +153,7 @@ export default function EpisodeCard({
               }`}
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>{isSolved ? 'Solved' : 'Solve'}</span>
+              <span>{isSolved ? 'Watched' : 'Mark Watched'}</span>
             </button>
           )}
         </div>

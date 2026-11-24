@@ -286,26 +286,26 @@ export default function EpisodeDetailPage() {
                 {episode.name}
               </h1>
 
-              {/* Memory Palace Actions on Episode Detail Page */}
+              {/* Favorite & Watched Actions on Episode Detail Page */}
               <div className="mt-3 flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setMemoryPalace({ ...toggleMemoryPalacePinned(episode.id) })}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
                     memoryPalace.pinnedIds.includes(episode.id)
-                      ? 'bg-amber-500/20 border-amber-400 text-amber-300'
+                      ? 'bg-red-600/20 border-red-400 text-red-300'
                       : 'bg-zinc-900 hover:bg-zinc-800 border-white/10 text-zinc-200'
                   }`}
                 >
                   <Bookmark
                     className={`h-3.5 w-3.5 ${
-                      memoryPalace.pinnedIds.includes(episode.id) ? 'fill-amber-300' : ''
+                      memoryPalace.pinnedIds.includes(episode.id) ? 'fill-red-400 text-red-400' : ''
                     }`}
                   />
                   <span>
                     {memoryPalace.pinnedIds.includes(episode.id)
-                      ? 'Pinned in Memory Palace'
-                      : 'Pin to Memory Palace'}
+                      ? 'Saved in Favorites'
+                      : 'Add to Favorites'}
                   </span>
                 </button>
 
@@ -321,8 +321,8 @@ export default function EpisodeDetailPage() {
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   <span>
                     {memoryPalace.solvedIds.includes(episode.id)
-                      ? 'Case Marked Solved'
-                      : 'Mark Case Solved'}
+                      ? 'Episode Watched'
+                      : 'Mark as Watched'}
                   </span>
                 </button>
               </div>

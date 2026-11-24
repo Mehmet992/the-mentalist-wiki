@@ -234,17 +234,17 @@ export default function EpisodesPage() {
           </div>
         </div>
 
-        {/* Patrick Jane's Memory Palace Bar (Embedded directly inside Episodes Page!) */}
+        {/* Episode Watch Tracker & Favorites Bar */}
         <div className="mt-5 rounded-2xl bg-[#0d0d13]/95 border border-white/10 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex-1 space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="inline-flex items-center gap-1.5 font-semibold text-red-300 uppercase">
-                <Brain className="h-4 w-4 text-red-400" />
-                <span>Patrick Jane&apos;s Memory Palace — Investigation Progress</span>
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <span>Your Series Watch Progress</span>
               </span>
               <span className="font-mono-code text-zinc-300">
                 <strong className="text-emerald-400">{solvedCount}</strong> / {episodes.length}{' '}
-                Cases Solved ({progressPct}%)
+                Episodes Watched ({progressPct}%)
               </span>
             </div>
             <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden border border-white/5">
@@ -255,7 +255,7 @@ export default function EpisodesPage() {
             </div>
           </div>
 
-          {/* Memory Palace Quick Filter Pills */}
+          {/* Quick Filter Pills: All, Favorites, Watched */}
           <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -266,19 +266,19 @@ export default function EpisodesPage() {
                   : 'bg-zinc-900 text-zinc-300 border-white/10 hover:text-white'
               }`}
             >
-              All Cases ({episodes.length})
+              All Episodes ({episodes.length})
             </button>
             <button
               type="button"
               onClick={() => setPalaceFilter('PINNED')}
               className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                 palaceFilter === 'PINNED'
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-400'
-                  : 'bg-zinc-900 text-zinc-300 border-white/10 hover:text-amber-300'
+                  ? 'bg-red-600/20 text-red-300 border-red-400'
+                  : 'bg-zinc-900 text-zinc-300 border-white/10 hover:text-red-300'
               }`}
             >
               <Bookmark className="h-3.5 w-3.5" />
-              <span>Pinned ({pinnedCount})</span>
+              <span>My Favorites ({pinnedCount})</span>
             </button>
             <button
               type="button"
@@ -290,7 +290,7 @@ export default function EpisodesPage() {
               }`}
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>Solved ({solvedCount})</span>
+              <span>Watched ({solvedCount})</span>
             </button>
           </div>
         </div>
