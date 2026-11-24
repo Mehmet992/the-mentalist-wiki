@@ -376,13 +376,13 @@ export default function TimelinePage() {
           )}
         </div>
 
-        {/* Progressive Disclosure: Red John Background Dossier */}
+        {/* Progressive Disclosure: Full-Width Red John Background Dossier */}
         {showRedJohnDossier && redJohnLore?.overview && (
-          <div className="mt-4 rounded-2xl bg-[#0d0d13] border border-red-500/40 p-4 text-base text-zinc-200 leading-[1.5] max-w-[65ch] animate-fade-slide">
-            <span className="text-red-400 uppercase text-xs font-bold block mb-1">
+          <div className="mt-4 w-full rounded-2xl bg-[#0d0d13] border border-red-500/40 p-5 text-base text-zinc-200 leading-[1.6] animate-fade-slide">
+            <span className="text-red-400 uppercase text-xs font-bold block mb-1.5">
               Who Is Red John?
             </span>
-            {redJohnLore.overview}
+            <p className="w-full">{redJohnLore.overview}</p>
           </div>
         )}
 

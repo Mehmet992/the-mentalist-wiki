@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Sparkles,
   UserCheck,
+  X,
   XCircle,
 } from 'lucide-react';
 import {
@@ -88,6 +89,21 @@ export default function InvestigationPage() {
   useEffect(() => {
     loadInvestigationData();
   }, [loadInvestigationData]);
+
+  // Lock background scroll and allow Escape dismissal when the Red John Verdict modal is open
+  useEffect(() => {
+    if (!accusedSuspectId) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => {
+      if (e.key === 'Escape') setAccusedSuspectId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [accusedSuspectId]);
 
   /**
    * Updates a suspect's investigation status ('CLEARED', 'PRIME', or null) in the session cache.
@@ -367,51 +383,6 @@ export default function InvestigationPage() {
             </div>
           </div>
 
-          {/* Accusation Feedback Banner */}
-          {accusedSuspectId && (
-            <div className="rounded-2xl border border-red-500/60 bg-gradient-to-r from-black via-red-950/60 to-black p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-slide">
-              {(() => {
-                const target = suspects.find((s) => s.id === accusedSuspectId);
-                if (!target) return null;
-                return target.isTrueRedJohn ? (
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-400 shrink-0 mt-0.5" />
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white font-serif-title">
-                        Deduction Confirmed: {target.name} ({target.actorName}) IS Red John!
-                      </h3>
-                      <p className="text-xs sm:text-sm text-zinc-200 mt-0.5">
-                        In Season 6 Episode 8 (&ldquo;Red John&rdquo;), Patrick Jane exposes Napa
-                        County Sheriff Thomas McAllister as the leader of the Blake Association
-                        and the serial killer Red John.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-3">
-                    <XCircle className="h-6 w-6 text-red-400 shrink-0 mt-0.5" />
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white font-serif-title">
-                        Incorrect Accusation: {target.name} is NOT Red John
-                      </h3>
-                      <p className="text-xs sm:text-sm text-zinc-300 mt-0.5">
-                        While {target.name} was one of Jane&apos;s 7 final suspects (and linked to
-                        the Blake Association / Visualize), they were eliminated during Season 6.
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
-              <button
-                type="button"
-                onClick={() => setAccusedSuspectId(null)}
-                className="px-3 py-1.5 rounded-lg bg-zinc-900 text-xs text-zinc-300 hover:text-white self-start sm:self-center cursor-pointer"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
-
           {/* 7 Final Suspects Corkboard Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {suspects.map((suspect, index) => {
@@ -434,40 +405,58 @@ export default function InvestigationPage() {
                   }`}
                 >
                   <div>
-                    {/* Suspect Image Header */}
-                    <div className="relative h-52 w-full bg-zinc-950 overflow-hidden">
+                    {/* Suspect Image Header (Uses reliable TVmaze photo + no-referrer fallback) */}
+                    <div className="relative h-56 w-full bg-[#101017] overflow-hidden flex items-center justify-center">
                       {suspect.characterImage ? (
-                        <img
-                          src={suspect.characterImage}
-                          alt={suspect.name}
-                          className="h-full w-full object-cover object-top"
-                        />
+                        <>
+                          <img
+                            src={suspect.characterImage}
+                            alt=""
+                            aria-hidden="true"
+                            referrerPolicy="no-referrer"
+                            className="absolute inset-0 w-full h-full object-cover blur-xl opacity-35 scale-110 pointer-events-none"
+                          />
+                          <img
+                            src={suspect.characterImage}
+                            alt={suspect.name}
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              if (
+                                suspect.fallbackImage &&
+                                e.currentTarget.src !== suspect.fallbackImage
+                              ) {
+                                e.currentTarget.src = suspect.fallbackImage;
+                              }
+                            }}
+                            className="relative z-10 h-full w-auto max-w-full object-contain pt-2"
+                          />
+                        </>
                       ) : (
-                        <div className="h-full w-full flex items-center justify-center text-xs text-zinc-600">
-                          No API Image
+                        <div className="h-full w-full flex items-center justify-center text-xs text-zinc-500">
+                          No Photo Available
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                      <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#0b0b10] via-black/25 to-transparent pointer-events-none" />
 
-                      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/15 text-xs font-mono-code font-bold text-red-400">
+                      <span className="absolute top-3 left-3 z-20 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/15 text-xs font-mono-code font-bold text-red-400">
                         SUSPECT #{index + 1}
                       </span>
 
                       {isRevealedRedJohn && (
-                        <span className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-red-600 text-xs font-mono-code font-bold text-white shadow-lg">
+                        <span className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-red-600 text-xs font-mono-code font-bold text-white shadow-lg">
                           TRUE RED JOHN
                         </span>
                       )}
 
                       {boardState === 'CLEARED' && !isRevealedRedJohn && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <div className="absolute inset-0 z-20 bg-black/60 flex items-center justify-center">
                           <span className="px-4 py-1.5 rounded-lg border-2 border-zinc-400 text-zinc-200 font-mono-code text-xs font-bold uppercase -rotate-12">
                             CLEARED BY USER
                           </span>
                         </div>
                       )}
 
-                      <div className="absolute bottom-3 left-3 right-3">
+                      <div className="absolute bottom-3 left-3 right-3 z-20 text-left">
                         <div className="inline-flex items-center gap-1 text-[11px] font-mono-code text-red-300">
                           <UserCheck className="h-3 w-3" />
                           <span>Actor: {suspect.actorName}</span>
@@ -718,6 +707,110 @@ export default function InvestigationPage() {
           </div>
         </section>
       )}
+
+      {/* Centered Pop-Up Verdict Modal when the user accuses a suspect (No scrolling required!) */}
+      {accusedSuspectId &&
+        (() => {
+          const target = suspects.find((s) => s.id === accusedSuspectId);
+          if (!target) return null;
+          const isCorrect = target.isTrueRedJohn;
+
+          return (
+            <div
+              role="dialog"
+              aria-modal="true"
+              onClick={() => setAccusedSuspectId(null)}
+              className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-slide"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className={`relative max-w-lg w-full rounded-3xl border-2 p-7 sm:p-8 text-center shadow-[0_0_80px_rgba(0,0,0,0.95)] ${
+                  isCorrect
+                    ? 'border-emerald-500 bg-gradient-to-b from-zinc-950 via-[#0b1410] to-emerald-950/50 shadow-[0_0_80px_rgba(16,185,129,0.35)]'
+                    : 'border-red-600 bg-gradient-to-b from-zinc-950 via-[#140b0d] to-red-950/50 shadow-[0_0_80px_rgba(220,38,38,0.4)]'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setAccusedSuspectId(null)}
+                  aria-label="Close verdict modal"
+                  className="absolute top-4 right-4 p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-white/10 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+
+                <div className="flex justify-center mb-4">
+                  <div
+                    className={`h-14 w-14 rounded-2xl border flex items-center justify-center ${
+                      isCorrect
+                        ? 'bg-emerald-500/20 border-emerald-400 text-emerald-400'
+                        : 'bg-red-600/20 border-red-500 text-red-400'
+                    }`}
+                  >
+                    {isCorrect ? (
+                      <CheckCircle2 className="h-8 w-8" />
+                    ) : (
+                      <XCircle className="h-8 w-8" />
+                    )}
+                  </div>
+                </div>
+
+                <span
+                  className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-3 ${
+                    isCorrect
+                      ? 'bg-emerald-500/20 border border-emerald-400/50 text-emerald-300'
+                      : 'bg-red-600/20 border border-red-500/50 text-red-300'
+                  }`}
+                >
+                  {isCorrect
+                    ? 'VERDICT CONFIRMED • TRUE RED JOHN'
+                    : 'WRONG SUSPECT • NOT RED JOHN'}
+                </span>
+
+                {/* Suspect Portrait inside Verdict Modal */}
+                {target.characterImage && (
+                  <div className="mx-auto my-3 w-28 h-36 rounded-2xl overflow-hidden border-2 border-white/20 bg-black shadow-xl">
+                    <img
+                      src={target.characterImage}
+                      alt={target.name}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </div>
+                )}
+
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#f5f5f5] font-serif-title mt-2">
+                  {isCorrect
+                    ? `${target.name} IS Red John!`
+                    : `${target.name} is NOT Red John`}
+                </h2>
+                <p className="text-xs font-semibold text-zinc-400 mt-1">
+                  Portrayed by {target.actorName}
+                </p>
+
+                <p className="text-base text-zinc-200 leading-[1.55] mt-4">
+                  {isCorrect
+                    ? 'Sharp mentalist deduction! In Season 6, Episode 8 ("Red John"), Patrick Jane exposes Napa County Sheriff Thomas McAllister as the mastermind behind the Blake Association and the real Red John.'
+                    : `Incorrect accusation. Although ${target.name} made Patrick Jane's final 7 suspects list, he was eliminated from the hunt during Season 6. Keep investigating the remaining suspects!`}
+                </p>
+
+                <div className="mt-6 pt-5 border-t border-white/10 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAccusedSuspectId(null)}
+                    className={`px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition cursor-pointer ${
+                      isCorrect
+                        ? 'bg-emerald-600 hover:bg-emerald-500'
+                        : 'bg-red-600 hover:bg-red-500'
+                    }`}
+                  >
+                    {isCorrect ? 'Close Case Verdict (ESC)' : 'Try Another Suspect (ESC)'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }

@@ -399,21 +399,30 @@ export async function searchTvMazePerson(actorName) {
 }
 
 /**
- * Fetches live Fandom Wiki page thumbnails for a list of article titles in one batch call.
+ * Fetches live Fandom Wiki page thumbnails for a list of article titles in one batch call,
+ * automatically following MediaWiki redirects (e.g. "Raymond Haffner" -> "Ray Haffner").
  */
 export async function fetchFandomPageThumbnails(titles = []) {
   if (!titles.length) return {};
   const joined = titles.map((t) => t.trim().replace(/\s+/g, '_')).join('|');
-  const url = `${FANDOM_API_URL}?action=query&prop=pageimages&piprop=thumbnail&pithumbsize=420&titles=${encodeURIComponent(
+  const url = `${FANDOM_API_URL}?action=query&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=420&titles=${encodeURIComponent(
     joined
   )}&format=json&origin=*`;
   try {
     const data = await fetchJsonWithCache(url);
     const pages = data?.query?.pages || {};
+    const redirects = data?.query?.redirects || [];
     const thumbMap = {};
     Object.values(pages).forEach((p) => {
       if (p?.title && p?.thumbnail?.source) {
         thumbMap[p.title.toLowerCase()] = p.thumbnail.source;
+      }
+    });
+    // Also map original pre-redirect titles to the resolved thumbnail URL
+    redirects.forEach((r) => {
+      const targetThumb = thumbMap[(r.to || '').toLowerCase()];
+      if (targetThumb && r.from) {
+        thumbMap[r.from.toLowerCase()] = targetThumb;
       }
     });
     return thumbMap;
@@ -423,8 +432,10 @@ export async function fetchFandomPageThumbnails(titles = []) {
 }
 
 /**
- * Dynamically fetches the live Fandom Wiki dossiers and TVmaze actor profiles
+ * Dynamically fetches the live Fandom Wiki dossiers and TVmaze actor portraits
  * for Patrick Jane's 7 final Red John suspects from Season 5/6.
+ * Prioritizes reliable TVmaze portraits (static.tvmaze.com) with Fandom thumbnails as fallback
+ * so suspect photos never break due to hotlink restrictions.
  */
 export async function fetchRedJohnSuspectsBoard() {
   const suspectNames = [
@@ -445,9 +456,15 @@ export async function fetchRedJohnSuspectsBoard() {
   const enrichedSuspects = await Promise.all(
     suspectNames.map(async (name, index) => {
       const article = articles[index];
-      const actorName = article?.infobox?.Actor || '';
+      const actorName = article?.infobox?.Actor || article?.infobox?.actor || '';
       const tvMazeActor = await searchTvMazePerson(actorName);
-      const fandomThumb = thumbMap[name.toLowerCase()] || null;
+      const fandomThumb =
+        thumbMap[name.toLowerCase()] ||
+        thumbMap[(article?.title || '').toLowerCase()] ||
+        null;
+      const tvMazePhoto =
+        tvMazeActor?.image?.original || tvMazeActor?.image?.medium || null;
+
       const isTrueRedJohn =
         name.toLowerCase().includes('mcallister') ||
         (article?.overview || '').toLowerCase().includes('revealed to be red john');
@@ -457,12 +474,11 @@ export async function fetchRedJohnSuspectsBoard() {
         name,
         actorName: tvMazeActor?.name || actorName || 'Guest Actor',
         actorPersonId: tvMazeActor?.id || null,
-        characterImage: fandomThumb || tvMazeActor?.image?.medium || null,
-        actorImage: tvMazeActor?.image?.medium || fandomThumb || null,
+        characterImage: tvMazePhoto || fandomThumb || null,
+        fallbackImage: fandomThumb || tvMazePhoto || null,
+        actorImage: tvMazePhoto || fandomThumb || null,
         job: article?.infobox?.Job || 'Suspect on Patrick Jane’s Final 7 List',
         status: article?.infobox?.Status || 'Investigated in Season 6',
-        firstEp: article?.infobox?.First || 'Season 1–5',
-        lastEp: article?.infobox?.Last || 'Season 6',
         overview:
           article?.overview ||
           'Identified by Patrick Jane as one of the seven final suspects who shook his hand and matched the Red John profile.',
@@ -473,6 +489,36 @@ export async function fetchRedJohnSuspectsBoard() {
   );
 
   return enrichedSuspects;
+}
+
+/**
+ * Fetches live social media memes, fan creations, and GIFs directly from the
+ * public Meme API for the r/TheMentalist community (https://meme-api.com/gimme/TheMentalist/20).
+ */
+export async function fetchMentalistCommunityMemes() {
+  const url = 'https://meme-api.com/gimme/TheMentalist/20';
+  const data = await fetchJsonWithCache(url);
+  const rawMemes = Array.isArray(data?.memes) ? data.memes : [];
+
+  // Deduplicate by postLink and exclude NSFW posts
+  const seenLinks = new Set();
+  return rawMemes
+    .filter((m) => {
+      if (!m || !m.url || m.nsfw || seenLinks.has(m.postLink)) return false;
+      seenLinks.add(m.postLink);
+      return true;
+    })
+    .map((m) => ({
+      id: m.postLink || m.url,
+      title: m.title && m.title.trim() !== '.' ? m.title.trim() : 'The Mentalist Community Post',
+      imageUrl: m.url,
+      author: m.author || 'Mentalist Fan',
+      upvotes: m.ups || 0,
+      postLink: m.postLink,
+      subreddit: m.subreddit || 'TheMentalist',
+      isGif: /\.gif($|\?)/i.test(m.url),
+      spoiler: Boolean(m.spoiler),
+    }));
 }
 
 /**
@@ -602,11 +648,11 @@ function parseFandomWikitext(wikitext) {
 
 /**
  * Fetches and parses an in-universe character or episode article live from
- * The Mentalist Fandom MediaWiki API (https://thementalist.fandom.com/api.php).
+ * The Mentalist Fandom MediaWiki API with automatic redirect resolution (&redirects=1).
  */
 export async function fetchFandomWikiArticle(pageTitle) {
   if (!pageTitle) return null;
-  const url = `${FANDOM_API_URL}?action=query&prop=revisions&titles=${encodeURIComponent(
+  const url = `${FANDOM_API_URL}?action=query&redirects=1&prop=revisions&titles=${encodeURIComponent(
     pageTitle.trim()
   )}&rvprop=content&rvslots=main&format=json&origin=*`;
 
