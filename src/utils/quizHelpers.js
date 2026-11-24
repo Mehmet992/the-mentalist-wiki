@@ -160,7 +160,7 @@ export function generateNextUniqueObservationQuestion({
   ).slice(0, 3);
 
   const options = shuffleArray([targetCast, ...distractors], rng).map((c) => ({
-    label: `${c.character?.name} (Portrayed by ${c.person?.name})`,
+    label: c.character?.name || 'Series Character',
     isCorrect: c.person?.id === targetCast.person?.id,
   }));
 
